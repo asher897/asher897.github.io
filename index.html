@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aaron Sher — ML Engineer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:    #0D1B2A;
+    --ink:     #1A2332;
+    --steel:   #2E4057;
+    --slate:   #4A6274;
+    --mist:    #8FA8BA;
+    --fog:     #C8D8E4;
+    --cloud:   #EEF3F7;
+    --white:   #FAFCFE;
+    --accent:  #1B7FBF;
+    --accent2: #0EA67A;
+    --rule:    #D4E0EA;
+    --serif:   'DM Serif Display', Georgia, serif;
+    --sans:    'DM Sans', system-ui, sans-serif;
+    --mono:    'DM Mono', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--white);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 clamp(1.5rem, 5vw, 4rem);
+    height: 60px;
+    background: rgba(250,252,254,0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .nav-logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+    text-decoration: none;
+  }
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-links a {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--slate);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--accent); }
+
+  /* ── LAYOUT ── */
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 clamp(1.5rem, 5vw, 2rem);
+  }
+
+  section { padding: 6rem 0; }
+  section + section { border-top: 1px solid var(--rule); }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+    font-weight: 400;
+    color: var(--navy);
+    line-height: 1.2;
+    margin-bottom: 2rem;
+  }
+
+  /* ── HERO ── */
+  #hero {
+    padding-top: 10rem;
+    padding-bottom: 5rem;
+    border-top: none;
+  }
+  .hero-eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .hero-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 1px;
+    background: var(--accent);
+  }
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.8rem, 6vw, 4.8rem);
+    font-weight: 400;
+    color: var(--navy);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    margin-bottom: 1.5rem;
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .hero-sub {
+    font-size: 1.1rem;
+    color: var(--slate);
+    max-width: 520px;
+    line-height: 1.65;
+    margin-bottom: 2.5rem;
+  }
+  .hero-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 2.5rem;
+  }
+  .tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--slate);
+    background: var(--cloud);
+    border: 1px solid var(--fog);
+    border-radius: 2px;
+    padding: 4px 10px;
+    letter-spacing: 0.04em;
+  }
+  .hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--navy);
+    color: var(--white);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 0.7rem 1.5rem;
+    border-radius: 2px;
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    transition: background 0.2s;
+  }
+  .hero-cta:hover { background: var(--accent); }
+  .hero-cta-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--slate);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 0.7rem 1.5rem;
+    border: 1px solid var(--fog);
+    border-radius: 2px;
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    margin-left: 0.75rem;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .hero-cta-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── ABOUT ── */
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 200px;
+    gap: 4rem;
+    align-items: start;
+  }
+  .about-text p { color: var(--slate); margin-bottom: 1rem; }
+  .about-text p:last-child { margin-bottom: 0; }
+  .about-sidebar { padding-top: 0.25rem; }
+  .sidebar-item {
+    margin-bottom: 1.5rem;
+  }
+  .sidebar-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--mist);
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+  }
+  .sidebar-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--steel);
+  }
+
+  /* ── SKILLS ── */
+  .skills-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .skill-cat {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+  }
+  .skill-cat:nth-child(even) { border-right: none; }
+  .skill-cat:nth-last-child(-n+2) { border-bottom: none; }
+  .skill-cat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+  .skill-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .skill-pill {
+    font-size: 12px;
+    color: var(--steel);
+    background: var(--cloud);
+    padding: 3px 8px;
+    border-radius: 2px;
+  }
+
+  /* ── PROJECTS ── */
+  .project-card {
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .project-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .project-card:hover { border-color: var(--fog); box-shadow: 0 4px 20px rgba(13,27,42,0.06); }
+  .project-card:hover::before { opacity: 1; }
+  .project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+    gap: 1rem;
+  }
+  .project-title {
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    color: var(--navy);
+    font-weight: 400;
+  }
+  .project-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .status-wip { background: #FFF4E0; color: #8A5A00; border: 1px solid #EDD68A; }
+  .status-research { background: #E6F1FB; color: #185FA5; border: 1px solid #85B7EB; }
+  .status-planned { background: var(--cloud); color: var(--slate); border: 1px solid var(--fog); }
+  .project-desc { color: var(--slate); font-size: 0.93rem; margin-bottom: 1rem; line-height: 1.65; }
+  .project-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .stack-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--mist);
+    border: 1px solid var(--rule);
+    padding: 2px 7px;
+    border-radius: 2px;
+  }
+
+  /* ── CASE STUDY EXPAND ── */
+  .status-proprietary { background: #F0EEF8; color: #3C3489; border: 1px solid #AFA9EC; }
+  .proprietary-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--mist);
+    margin-bottom: 1rem;
+  }
+  .proprietary-note::before {
+    content: '';
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--fog);
+    border: 1px solid var(--mist);
+  }
+  .case-study-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    padding: 0;
+    margin-top: 0.75rem;
+    transition: color 0.2s;
+  }
+  .case-study-toggle:hover { color: var(--navy); }
+  .toggle-arrow { transition: transform 0.25s ease; display: inline-block; }
+  /* .case-study-toggle.open .toggle-arrow { transform: rotate(90deg); } */
+  .case-study-body {
+    display: none;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--rule);
+  }
+  .case-study-body.open { display: block; }
+  .cs-section { margin-bottom: 1.1rem; }
+  .cs-section:last-child { margin-bottom: 0; }
+  .cs-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--accent2);
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+  }
+  .cs-text { font-size: 0.9rem; color: var(--slate); line-height: 1.65; }
+
+  /* ── RESEARCH ── */
+  .research-card {
+    background: var(--cloud);
+    border-radius: 4px;
+    padding: 2rem 2rem 2rem 2.5rem;
+    border-left: 3px solid var(--accent);
+    margin-bottom: 1.5rem;
+  }
+  .research-title {
+    font-family: var(--serif);
+    font-size: 1.15rem;
+    color: var(--navy);
+    font-weight: 400;
+    margin-bottom: 0.5rem;
+    line-height: 1.35;
+  }
+  .research-venue {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+    margin-bottom: 0.75rem;
+  }
+  .research-abstract { color: var(--slate); font-size: 0.93rem; line-height: 1.65; }
+
+  /* ── HIGHLIGHTS ── */
+  .highlights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+  .highlight-stat {
+    padding: 1.5rem;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+  }
+  .stat-number {
+    font-family: var(--serif);
+    font-size: 2.4rem;
+    color: var(--navy);
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+  .stat-number span { color: var(--accent); }
+  .stat-label { font-size: 0.85rem; color: var(--slate); }
+
+  .highlights-list { list-style: none; }
+  .highlights-list li {
+    display: flex;
+    gap: 1rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: 0.93rem;
+    color: var(--slate);
+    line-height: 1.55;
+  }
+  .highlights-list li:last-child { border-bottom: none; }
+  .hl-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    background: var(--cloud);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hl-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent2);
+  }
+
+  /* ── BLOG ── */
+  .blog-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1.5rem;
+  }
+  .blog-card {
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: border-color 0.2s;
+    text-decoration: none;
+  }
+  .blog-card:hover { border-color: var(--accent); }
+  .blog-topic {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--accent2);
+    text-transform: uppercase;
+  }
+  .blog-title {
+    font-family: var(--serif);
+    font-size: 1.05rem;
+    color: var(--navy);
+    font-weight: 400;
+    line-height: 1.35;
+  }
+  .blog-meta {
+    font-size: 12px;
+    color: var(--mist);
+    margin-top: auto;
+    font-family: var(--mono);
+  }
+  .blog-draft {
+    font-size: 10px;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    color: var(--mist);
+    background: var(--cloud);
+    border: 1px solid var(--rule);
+    padding: 2px 7px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    display: inline-block;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--rule);
+    padding: 3rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--mist);
+    font-size: 13px;
+  }
+  footer a { color: var(--slate); text-decoration: none; }
+  footer a:hover { color: var(--accent); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up { animation: fadeUp 0.7s ease both; }
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.22s; }
+  .delay-3 { animation-delay: 0.36s; }
+  .delay-4 { animation-delay: 0.5s; }
+
+  @media (max-width: 680px) {
+    .about-grid { grid-template-columns: 1fr; gap: 2rem; }
+    .skills-grid { grid-template-columns: 1fr; }
+    .skill-cat { border-right: none; }
+    .highlights-grid { grid-template-columns: 1fr 1fr; }
+    .blog-grid { grid-template-columns: 1fr; }
+    .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#hero" class="nav-logo">[ aaron.sher ]</a>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#projects">Projects</a></li>
+    <li><a href="#research">Research</a></li>
+    <li><a href="#highlights">Experience</a></li>
+    <li><a href="#blog">Writing</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="container">
+    <div class="hero-eyebrow fade-up">Machine Learning Engineer</div>
+    <h1 class="fade-up delay-1">Aaron Sher<br><em>builds systems<br>that learn.</em></h1>
+    <p class="hero-sub fade-up delay-2">
+      4+ years engineering high-performance backend systems at scale,
+      combined with deep ML expertise in computer vision, NLP, and
+      clinical data science.
+    </p>
+    <div class="hero-tags fade-up delay-3">
+      <span class="tag">Python</span>
+      <span class="tag">PyTorch</span>
+      <span class="tag">Computer Vision</span>
+      <span class="tag">MLOps</span>
+      <span class="tag">Distributed Systems</span>
+      <span class="tag">Azure</span>
+      <span class="tag">C++</span>
+    </div>
+    <div class="fade-up delay-4">
+      <a href="#projects" class="hero-cta">View Projects →</a>
+      <a href="Aaron Sher - CV.pdf" target="_blank" class="hero-cta-ghost">View My CV</a>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="container">
+    <div class="section-label">About</div>
+    <div class="about-grid">
+      <div class="about-text">
+        <h2>Engineer first.<br>Scientist second.</h2>
+        <p>
+          I hold a B.Sc in Computer Science & Economics from UCT and a B.Sc (Hons)
+          in Computer Science from Wits, where my research applied bagging and
+          cross-attention mechanisms to medical image segmentation — improving
+          domain transfer across disease datasets including COVID-19 and TB.
+        </p>
+        <p>
+          After three and a half years building the core backend infrastructure
+          for a major bank's digital platform — optimising message brokers,
+          designing async frameworks, leading Kubernetes migrations — I moved into
+          a Senior Data Scientist role architecting ETL pipelines and applying ML and Data Analysis
+          to clinical outcomes research.
+        </p>
+        <p>
+          I'm drawn to problems where rigorous engineering and applied ML intersect:
+          production model serving, scalable training pipelines, and CV systems
+          that work in the real world. I hold a Microsoft Azure Developer Associate
+          certification.
+        </p>
+      </div>
+      <div class="about-sidebar">
+        <div class="sidebar-item">
+          <div class="sidebar-label">Focus</div>
+          <div class="sidebar-value">ML Engineering<br>Data Science<br>Software Engineering</div>
+        </div>
+        <div class="sidebar-item">
+          <div class="sidebar-label">Education</div>
+          <div class="sidebar-value">B.Sc Hons CS<br>Wits, 2024</div>
+        </div>
+        <div class="sidebar-item">
+          <div class="sidebar-label">Certification</div>
+          <div class="sidebar-value">Azure Developer<br>Associate (AZ-204)</div>
+        </div>
+        <!-- <div class="sidebar-item">
+          <div class="sidebar-label">Open to</div>
+          <div class="sidebar-value">Remote / Hybrid</div>
+        </div> -->
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SKILLS -->
+<section id="skills">
+  <div class="container">
+    <div class="section-label">Skills & Stack</div>
+    <h2>Tools I work with.</h2>
+    <div class="skills-grid">
+      <div class="skill-cat">
+        <div class="skill-cat-label">ML / AI</div>
+        <div class="skill-pills">
+          <span class="skill-pill">PyTorch</span>
+          <span class="skill-pill">TensorFlow</span>
+          <span class="skill-pill">scikit-learn</span>
+          <span class="skill-pill">Hugging Face</span>
+          <span class="skill-pill">ONNX</span>
+          <span class="skill-pill">LangChain</span>
+          <span class="skill-pill">LlamaIndex</span>
+          <span class="skill-pill">RAG</span>
+          <span class="skill-pill">W&B</span>
+          <span class="skill-pill">MLflow</span>
+        </div>
+      </div>
+      <div class="skill-cat">
+        <div class="skill-cat-label">Computer Vision</div>
+        <div class="skill-pills">
+          <span class="skill-pill">OpenCV</span>
+          <span class="skill-pill">Albumentations</span>
+          <span class="skill-pill">torchvision</span>
+          <span class="skill-pill">PIL / Pillow</span>
+          <span class="skill-pill">scikit-image</span>
+          <span class="skill-pill">Segmentation</span>
+          <span class="skill-pill">Medical Imaging</span>
+        </div>
+      </div>
+      <div class="skill-cat">
+        <div class="skill-cat-label">Data & Pipelines</div>
+        <div class="skill-pills">
+          <span class="skill-pill">Polars</span>
+          <span class="skill-pill">pandas</span>
+          <span class="skill-pill">NumPy</span>
+          <span class="skill-pill">Airflow</span>
+          <span class="skill-pill">SQL</span>
+          <span class="skill-pill">Jupyter</span>
+          <span class="skill-pill">Feature Engineering</span>
+        </div>
+      </div>
+      <div class="skill-cat">
+        <div class="skill-cat-label">Backend</div>
+        <div class="skill-pills">
+          <span class="skill-pill">Python</span>
+          <span class="skill-pill">C++</span>
+          <span class="skill-pill">FastAPI</span>
+          <span class="skill-pill">Celery</span>
+          <span class="skill-pill">Redis</span>
+          <span class="skill-pill">RabbitMQ</span>
+          <span class="skill-pill">Microservices</span>
+          <span class="skill-pill">REST APIs</span>
+        </div>
+      </div>
+      <div class="skill-cat">
+        <div class="skill-cat-label">Infra / Cloud</div>
+        <div class="skill-pills">
+          <span class="skill-pill">Docker</span>
+          <span class="skill-pill">Kubernetes</span>
+          <span class="skill-pill">Azure</span>
+          <span class="skill-pill">CI/CD</span>
+          <span class="skill-pill">Linux</span>
+          <span class="skill-pill">Prometheus</span>
+          <span class="skill-pill">Grafana</span>
+        </div>
+      </div>
+      <div class="skill-cat">
+        <div class="skill-cat-label">Methods</div>
+        <div class="skill-pills">
+          <span class="skill-pill">Deep Learning</span>
+          <span class="skill-pill">Reinforcement Learning</span>
+          <span class="skill-pill">NLP</span>
+          <span class="skill-pill">Async Architecture</span>
+          <span class="skill-pill">System Design</span>
+          <span class="skill-pill">TDD</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROJECTS -->
+<section id="projects">
+  <div class="container">
+    <div class="section-label">Projects</div>
+    <h2>Things I've built<br>or am building.</h2>
+
+    <div class="project-card">
+      <div class="project-header">
+        <div class="project-title">Chest Pathology Segmentation with Cross-Attention</div>
+        <span class="project-status status-wip">In Progress</span>
+      </div>
+      <p class="project-desc">
+        A medical image segmentation system trained on the publicly available NIH ChestX-ray14 dataset.
+        Extends my Honours research by combining bagging ensembles with cross-attention for
+        improved domain transfer across pathologies. Targets robust detection of conditions
+        including pneumonia, effusion, and nodules with explainable saliency maps.
+      </p>
+      <div class="project-stack">
+        <span class="stack-tag">PyTorch</span>
+        <span class="stack-tag">OpenCV</span>
+        <span class="stack-tag">Albumentations</span>
+        <span class="stack-tag">scikit-image</span>
+        <span class="stack-tag">W&B</span>
+        <span class="stack-tag">ONNX</span>
+      </div>
+    </div>
+
+    <div class="project-card">
+      <div class="project-header">
+        <div class="project-title">Recovery Pathway Modelling — Arthroplasty Outcomes</div>
+        <span class="project-status status-proprietary">Professional Work</span>
+      </div>
+      <div class="proprietary-note">Client project — code proprietary</div>
+      <p class="project-desc">
+        Applied ML to identify distinct post-operative recovery trajectories for knee and
+        hip arthroplasty patients, surfacing the clinical features most
+        predictive of different recovery experiences.
+      </p>
+      <div class="project-stack">
+        <span class="stack-tag">scikit-learn</span>
+        <span class="stack-tag">Polars</span>
+        <span class="stack-tag">pandas</span>
+        <span class="stack-tag">SHAP</span>
+        <span class="stack-tag">Airflow</span>
+      </div>
+      <button class="case-study-toggle" onclick="toggleCase(this)">
+        <span class="toggle-arrow">Read case study</span>
+      </button>
+      <div class="case-study-body">
+        <div class="cs-section">
+          <div class="cs-label">Problem</div>
+          <div class="cs-text">We wanted to understand why patients undergoing knee and hip arthroplasty experienced such varied recovery outcomes — some recovering quickly, others facing prolonged rehabilitation or complications — and what factors drove those differences.</div>
+        </div>
+        <div class="cs-section">
+          <div class="cs-label">Approach</div>
+          <div class="cs-text">Designed and built end-to-end data pipelines in Polars to clean and structure longitudinal patient episode data. Applied clinical-based clustering to identify distinct recovery pathway groups, then used classifier models with SHAP-based feature importance and statistical analysis to characterise what differentiated each cohort — across clinical and procedural.</div>
+        </div>
+        <div class="cs-section">
+          <div class="cs-label">Methods</div>
+          <div class="cs-text">Clinical clustering for pathway segmentation; Logistic regression and gradient boosted trees (XGBoost, LightGBM) for classifying recovery; SHAP for post-hoc explainability; Polars for high-performance in-memory feature engineering.</div>
+        </div>
+        <div class="cs-section">
+          <div class="cs-label">Outcome</div>
+          <div class="cs-text">Delivered a clear taxonomy of recovery profiles with interpretable feature drivers, enabling actuarial teams to model risk more precisely and informing clinical recommendations around patient selection and rehabilitation planning.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="project-card">
+      <div class="project-header">
+        <div class="project-title">Async Microservice Worker Framework</div>
+        <span class="project-status status-proprietary">Professional Work</span>
+      </div>
+      <div class="proprietary-note">Client project — code proprietary</div>
+      <p class="project-desc">
+        Designed and built an asynchronous Python worker framework that eliminated synchronous
+        bottlenecks across a bank's microservice infrastructure, significantly improving
+        throughput and reducing end-to-end latency.
+      </p>
+      <div class="project-stack">
+        <span class="stack-tag">Python</span>
+        <span class="stack-tag">asyncio</span>
+        <span class="stack-tag">RabbitMQ</span>
+        <span class="stack-tag">Redis</span>
+        <span class="stack-tag">Docker</span>
+        <span class="stack-tag">Kubernetes</span>
+      </div>
+      <button class="case-study-toggle" onclick="toggleCase(this)">
+        <span class="toggle-arrow">Read case study</span>
+      </button>
+      <div class="case-study-body">
+        <div class="cs-section">
+          <div class="cs-label">Problem</div>
+          <div class="cs-text">A major bank's microservice infrastructure was suffering from significant latency caused by synchronous worker processes — each task blocked its thread until completion, creating throughput ceilings that became critical bottlenecks under real-world load.</div>
+        </div>
+        <div class="cs-section">
+          <div class="cs-label">Approach</div>
+          <div class="cs-text">Independently diagnosed the root cause through production metrics analysis, then designed an async worker framework from scratch. The framework abstracted concurrency management away from individual services, allowing teams to adopt async execution through configuration rather than code rewrites. Simultaneously redesigned the RabbitMQ integration layer that the workers depended on from a polling-based approach to a notification-based approach.</div>
+        </div>
+        <div class="cs-section">
+          <div class="cs-label">Methods</div>
+          <div class="cs-text">Python asyncio for non-blocking execution; redesigned RabbitMQ consumer/producer patterns to eliminate unnecessary round-trips; Redis for distributed state; containerised with Docker and deployed on Kubernetes (AKS & OpenShift).</div>
+        </div>
+        <div class="cs-section">
+          <div class="cs-label">Outcome</div>
+          <div class="cs-text">~50% reduction in end-to-end latency across multiple process flows; CPU usage halved on numerous services. The async framework was adopted across the broader microservice infrastructure and became the standard pattern for new worker development.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="project-card">
+      <div class="project-header">
+        <div class="project-title">Transfer Learning & Seeded Iterated Learning on AfriBERTa</div>
+        <span class="project-status status-wip">University Project</span>
+      </div>
+      <div class="proprietary-note">Group project · University of the Witwatersrand · 2023</div>
+      <p class="project-desc">
+        Investigated transfer learning and language drift in multilingual NLP using AfriBERTa —
+        a transformer model trained on 11 low-resource African languages. Fine-tuned the model
+        on cross-lingual news topic classification tasks across Hausa and Swahili, then implemented
+        a Seeded Iterated Learning (SIL) algorithm to combat language drift: the tendency of
+        fine-tuned models to lose syntactic and semantic properties outside their target task.
+      </p>
+      <div class="project-stack">
+        <span class="stack-tag">Python</span>
+        <span class="stack-tag">PyTorch</span>
+        <span class="stack-tag">HuggingFace Transformers</span>
+        <span class="stack-tag">AfriBERTa</span>
+        <span class="stack-tag">NLP</span>
+        <span class="stack-tag">Transfer Learning</span>
+      </div>
+      <button class="case-study-toggle" onclick="toggleCase(this)">
+        <span class="toggle-arrow">Read case study</span>
+      </button>
+      <div class="case-study-body">
+        <div class="cs-section">
+          <div class="cs-label">Problem</div>
+          <div class="cs-text">When fine-tuning language models sequentially on multiple downstream tasks, models undergo language drift — gradually losing the syntactic and semantic properties of language learned during pre-training, becoming increasingly specialised at the expense of general linguistic understanding.</div>
+        </div>
+        <div class="cs-section">
+          <div class="cs-label">Approach</div>
+          <div class="cs-text">Implemented a teacher-student SIL framework on top of AfriBERTa. The teacher agent was fine-tuned on the target task using real labels, then used to generate soft label distributions for the student agent to train on during the imitation phase. This indirect training signal preserves broader linguistic knowledge rather than overfitting to task-specific labels. Experimented with imitation phase lengths of 1, 3, and 5 epochs to assess their effect on drift mitigation.</div>
+        </div>
+        <div class="cs-section">
+          <div class="cs-label">Methods</div>
+          <div class="cs-text">AfriBERTa fine-tuned on MasakhaNEWS dataset across Hausa and Swahili news topic classification; AdamW optimiser with cross-entropy loss; softmax output distributions as soft labels; label frequency distribution analysis to visualise and quantify language drift across tasks.</div>
+        </div>
+        <div class="cs-section">
+          <div class="cs-label">Outcome</div>
+          <div class="cs-text">SIL successfully combated language drift — the SIL model maintained a consistent label distribution across both tasks, whereas the baseline model showed pronounced distributional shift indicative of drift. The trade-off was a modest reduction in raw accuracy and F1 metrics (0.76 vs 0.81 on task 1), an expected consequence of training on soft rather than hard labels.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="project-card">
+      <div class="project-header">
+        <div class="project-title">Deep Q-Network Agent — Atari Pong</div>
+        <span class="project-status status-wip">University Project</span>
+      </div>
+      <div class="proprietary-note">Group project · University of the Witwatersrand · 2023</div>
+      <p class="project-desc">
+        Implemented the Nature DQN architecture from scratch to train a reinforcement learning
+        agent on Atari Pong (PongNoFrameskip-v4). Built the full training pipeline including
+        experience replay, epsilon-greedy exploration, and periodic target network updates.
+      </p>
+      <div class="project-stack">
+        <span class="stack-tag">Python</span>
+        <span class="stack-tag">PyTorch</span>
+        <span class="stack-tag">OpenAI Gym</span>
+        <span class="stack-tag">Reinforcement Learning</span>
+        <span class="stack-tag">Deep Q-Network</span>
+      </div>
+      <button class="case-study-toggle" onclick="toggleCase(this)">
+        <span class="toggle-arrow">Read case study</span>
+      </button>
+      <div class="case-study-body">
+        <div class="cs-section">
+          <div class="cs-label">Problem</div>
+          <div class="cs-text">Train an agent to play Atari Pong directly from raw pixel input using reinforcement learning — learning an optimal policy purely from environment interactions and reward signals, with no hand-crafted features or game-specific logic.</div>
+        </div>
+        <div class="cs-section">
+          <div class="cs-label">Approach</div>
+          <div class="cs-text">Implemented the Nature DQN architecture: a three-layer convolutional network to extract spatial features from stacked 84×84 greyscale frames, followed by fully connected layers mapping to Q-values over the action space. Trained using experience replay to decorrelate samples, a frozen target network updated periodically to stabilise learning targets, and an epsilon-greedy policy with linear decay to balance exploration and exploitation.</div>
+        </div>
+        <div class="cs-section">
+          <div class="cs-label">Methods</div>
+          <div class="cs-text">CNN architecture: Conv(8×8, s=4) → Conv(4×4, s=2) → Conv(3×3, s=1) → FC(512) → Q-values; MSE TD-error loss; Adam optimiser (lr=1e-4); replay buffer of 50k transitions; target network synced every 100 steps.</div>
+        </div>
+        <div class="cs-section">
+          <div class="cs-label">Outcome</div>
+          <div class="cs-text">Agent learned a competitive Pong policy from pixel observations over 1M environment steps, with tracked episode returns and mean Q-value trends confirming stable convergence.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESEARCH -->
+<section id="research">
+  <div class="container">
+    <div class="section-label">Research</div>
+    <h2>Academic work.</h2>
+    <div class="research-card">
+      <div class="research-venue">B.Sc (Hons) Dissertation · University of the Witwatersrand · 2024</div>
+      <div class="research-title">
+        Leveraging Bagging and Cross-Attention for Feature Context Extraction
+        in Medical Image Analysis
+      </div>
+      <p class="research-abstract">
+        Investigated the challenge of domain transfer in computer vision applied to medical
+        image segmentation. Proposed a hybrid approach combining bagging ensembles — to
+        reduce variance across heterogeneous training distributions — with cross-attention
+        mechanisms that enable the model to selectively weight contextually relevant spatial
+        features. Applied to disease segmentation tasks including COVID-19 and tuberculosis,
+        demonstrating improved generalisation across imaging domains without retraining.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- HIGHLIGHTS -->
+<section id="highlights">
+  <div class="container">
+    <!-- <div class="section-label">Professional Highlights</div> -->
+    <h2>What I've shipped.</h2>
+    <!-- <div class="highlights-grid">
+      <div class="highlight-stat">
+        <div class="stat-number">~<span>50</span>%</div>
+        <div class="stat-label">Latency reduction via redesigned message broker architecture</div>
+      </div>
+      <div class="highlight-stat">
+        <div class="stat-number"><span>4</span>+</div>
+        <div class="stat-label">Years building core infrastructure for a major bank's digital platform</div>
+      </div>
+      <div class="highlight-stat">
+        <div class="stat-number"><span>0</span></div>
+        <div class="stat-label">Downtime during cross-cluster Kubernetes migration I architected</div>
+      </div> -->
+    <!-- </div> -->
+    <ul class="highlights-list">
+      <li>
+        <div class="hl-icon"><div class="hl-dot"></div></div>
+        <span>Solely redesigned RabbitMQ integration across legacy C++ and modern Python microservices — halved CPU usage and latency across multiple process flows.</span>
+      </li>
+      <li>
+        <div class="hl-icon"><div class="hl-dot"></div></div>
+        <span>Designed and built an async Python worker process framework from scratch, eliminating synchronous bottlenecks and significantly improving throughput under load.</span>
+      </li>
+      <li>
+        <div class="hl-icon"><div class="hl-dot"></div></div>
+        <span>Designed and built intermediary bridge services enabling zero-downtime 
+          cross-cluster communication during a live Kubernetes migration — messages 
+          routed transparently between separate broker clusters with no code changes 
+          required from consuming services.</span>
+      </li>
+      <li>
+        <div class="hl-icon"><div class="hl-dot"></div></div>
+        <span>Engineered RabbitMQ integration directly into the legacy C++ codebase, 
+          enabling legacy and modern Python microservices to share a single message 
+          broker — eliminating the communication boundary between old and new systems.</span>
+      </li>
+      <li>
+        <div class="hl-icon"><div class="hl-dot"></div></div>
+        <span>Led migration of the ETL framework from SQL-heavy transforms to in-memory Polars pipelines, reducing processing time significantly and modularising into config-driven components.</span>
+      </li>
+      <li>
+        <div class="hl-icon"><div class="hl-dot"></div></div>
+        <span>Integrated real-time WebSocket streaming between call-centre agents and AI services, enhancing responsiveness in live customer interactions.</span>
+      </li>
+      <li>
+        <div class="hl-icon"><div class="hl-dot"></div></div>
+        <span>Built WhatsApp banking features end-to-end: E2E encryption in partnership 
+          with third-party providers, comprehensive inbound and outbound message 
+          tracking, and agent dashboards with real-time delivery status monitoring.</span>
+      </li>
+      <li>
+        <div class="hl-icon"><div class="hl-dot"></div></div>
+        <span>Developed scalable bulk notification APIs for WhatsApp client outreach — 
+          supporting campaign-based messaging to client groups and powering agent 
+          dashboards to manage campaigns and monitor delivery statuses.</span>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- BLOG -->
+<section id="blog">
+  <div class="container">
+    <div class="section-label">Writing</div>
+    <h2>Articles on some of what I've done.</h2>
+    <div class="blog-grid">
+      <a href="articles/article-async-bottlenecks.html" class="blog-card">
+        <div class="blog-topic">Systems</div>
+        <div class="blog-title">Eliminating Synchronous Bottlenecks in Python Microservices</div>
+        <div style="display:flex; gap: 0.5rem; align-items: center; margin-top: auto;">
+          <span class="blog-meta">~2025</span>
+        </div>
+      </a>
+      <a href="articles/article-cross-attention.html" class="blog-card">
+        <div class="blog-topic">Computer Vision</div>
+        <div class="blog-title">Cross-Attention for Domain Transfer in Medical Image Segmentation</div>
+        <div style="display:flex; gap: 0.5rem; align-items: center; margin-top: auto;">
+          <span class="blog-meta">~2024</span>
+        </div>
+      </a>
+      <a href="articles/article-polars-etl.html" class="blog-card">
+        <div class="blog-topic">MLOps</div>
+        <div class="blog-title">From SQL Transforms to Polars: Rethinking the ETL Layer</div>
+        <div style="display:flex; gap: 0.5rem; align-items: center; margin-top: auto;">
+          <span class="blog-meta">~2025</span>
+        </div>
+      </a>
+      <a href="articles/article-rabbitmq-push.html" class="blog-card">
+        <div class="blog-topic">Systems</div>
+        <div class="blog-title">From Polling to Push: Redesigning RabbitMQ Consumers for Performance</div>
+        <div style="display:flex; gap: 0.5rem; align-items: center; margin-top: auto;">
+          <span class="blog-meta">~2024</span>
+        </div>
+      </a>
+      <a href="articles/article-dqn-atari.html" class="blog-card">
+        <div class="blog-topic">Machine Learning</div>
+        <div class="blog-title">Deep Q-Networks: Learning to Play Atari from Pixels</div>
+        <div style="display:flex; gap: 0.5rem; align-items: center; margin-top: auto;">
+          <span class="blog-meta">~2023</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+    <span style="font-family: var(--mono); font-size: 12px;">[aaron.sher] · ML Engineer</span>
+    <span>
+      <a href="mailto:asher897@gmail.com" style="margin-right: 1.5rem;">Email</a>
+      <a href="https://linkedin.com/in/aaron-sher-176704180" style="margin-right: 1.5rem;">LinkedIn</a>
+      <a href="https://github.com/asher897">GitHub</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+function toggleCase(btn) {
+  const body = btn.nextElementSibling;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  btn.classList.toggle('open', !isOpen);
+  // btn.querySelector('.toggle-arrow').style.transform = isOpen ? '' : 'rotate(90deg)';
+  btn.childNodes[1].textContent = isOpen ? 'Read case study' : ' Hide case study';
+}
+</script>
+</body>
+</html>

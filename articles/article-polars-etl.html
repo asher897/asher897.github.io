@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>From SQL Transforms to Polars: Rethinking the ETL Layer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy:   #0D1B2A;
+    --ink:    #1A2332;
+    --steel:  #2E4057;
+    --slate:  #4A6274;
+    --mist:   #8FA8BA;
+    --fog:    #C8D8E4;
+    --cloud:  #EEF3F7;
+    --white:  #FAFCFE;
+    --accent: #1B7FBF;
+    --green:  #0EA67A;
+    --rule:   #D4E0EA;
+    --code-bg:#F0F4F8;
+    --serif:  'DM Serif Display', Georgia, serif;
+    --sans:   'DM Sans', system-ui, sans-serif;
+    --mono:   'DM Mono', monospace;
+  }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--sans); background: var(--white); color: var(--ink); font-size: 17px; line-height: 1.8; -webkit-font-smoothing: antialiased; }
+
+  .article-header { max-width: 720px; margin: 0 auto; padding: 5rem 2rem 3rem; border-bottom: 1px solid var(--rule); }
+  .article-meta { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; margin-bottom: 1.2rem; display: flex; gap: 1.5rem; align-items: center; }
+  .article-meta span { color: var(--mist); }
+  h1 { font-family: var(--serif); font-size: clamp(2rem, 4vw, 3rem); font-weight: 400; color: var(--navy); line-height: 1.15; letter-spacing: -0.01em; margin-bottom: 1.25rem; }
+  .article-lede { font-size: 1.15rem; color: var(--slate); line-height: 1.65; font-weight: 300; border-left: 3px solid var(--accent); padding-left: 1.25rem; margin-top: 1.5rem; }
+
+  .article-body { max-width: 720px; margin: 0 auto; padding: 3rem 2rem 6rem; }
+
+  h2 { font-family: var(--serif); font-size: 1.7rem; font-weight: 400; color: var(--navy); line-height: 1.25; margin: 3rem 0 1rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
+  h2:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+  h3 { font-size: 0.8rem; font-weight: 500; color: var(--steel); letter-spacing: 0.04em; text-transform: uppercase; margin: 2rem 0 0.6rem; }
+
+  p { color: var(--slate); margin-bottom: 1.25rem; }
+  p:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 500; }
+  em { font-style: italic; color: var(--steel); }
+
+  pre { background: var(--code-bg); border: 1px solid var(--rule); border-radius: 4px; padding: 1.5rem; overflow-x: auto; margin: 1.5rem 0; }
+  pre code { font-family: var(--mono); font-size: 13.5px; line-height: 1.7; color: var(--ink); }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--cloud); color: var(--steel); padding: 1px 5px; border-radius: 3px; border: 1px solid var(--rule); }
+  pre code { background: none; border: none; padding: 0; font-size: 13.5px; }
+  .code-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--mist); text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
+
+  .kw  { color: #185FA5; }
+  .fn  { color: #0EA67A; }
+  .cm  { color: #9EB5C4; font-style: italic; }
+  .st  { color: #BA7517; }
+  .nm  { color: #3C3489; }
+  .dc  { color: #993556; }
+  .key { color: #185FA5; }
+  .val { color: #BA7517; }
+  .cmt { color: #9EB5C4; font-style: italic; }
+
+  .callout { background: var(--cloud); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 1rem 1.25rem; margin: 1.75rem 0; font-size: 0.93rem; color: var(--steel); line-height: 1.65; }
+  .callout strong { color: var(--accent); }
+  .callout-warn { border-left-color: #BA7517; background: #FAEEDA; }
+  .callout-warn strong { color: #854F0B; }
+
+  .figure { margin: 2rem 0; padding: 1.5rem; background: var(--cloud); border-radius: 4px; border: 1px solid var(--rule); }
+  .figure-caption { font-family: var(--mono); font-size: 11px; color: var(--mist); letter-spacing: 0.04em; margin-top: 0.75rem; display: block; line-height: 1.5; }
+  .diagram { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; color: var(--steel); white-space: pre; overflow-x: auto; }
+
+  .article-footer { max-width: 720px; margin: 0 auto; padding: 2rem; border-top: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: center; }
+  .article-footer a { font-family: var(--mono); font-size: 12px; color: var(--accent); text-decoration: none; letter-spacing: 0.04em; }
+  .article-footer a:hover { text-decoration: underline; }
+  .back-link { color: var(--mist); font-family: var(--mono); font-size: 12px; text-decoration: none; }
+  .back-link:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header class="article-header">
+  <div class="article-meta">
+    Data Engineering <span>·</span> Python <span>·</span> Airflow
+    <span style="margin-left:auto;">2025</span>
+  </div>
+  <h1>From SQL Transforms to Polars: Rethinking the ETL Layer</h1>
+  <p class="article-lede">
+    We were paying database compute costs to run transformations that had no business being
+    in the database. Moving them to in-memory Polars — and wrapping the whole thing in a
+    YAML-driven Airflow framework — cut costs, made pipelines testable, and reduced new
+    pipeline creation to a config file. Here's how it was built.
+  </p>
+</header>
+
+<article class="article-body">
+
+  <!-- 1. THE PROBLEM -->
+  <h2>The Problem with Transforming in the Database</h2>
+
+  <p>
+    The original setup was straightforward: raw client data lands in the database, a series
+    of SQL queries run against it to clean, join, and reshape the data for actuarial analysis,
+    and the results are written back out. It's a pattern that feels natural — SQL is expressive,
+    the data is already there, so why move it?
+  </p>
+  <p>
+    The answer, at scale, is cost. Database compute is expensive. Every multi-table join,
+    every aggregation over millions of rows, every regex substitution running inside the
+    engine is burning money on provisioned capacity that sits idle the rest of the time.
+    For ad-hoc queries this is fine. For systematic, repeatable transformation pipelines
+    running on a schedule, it's the wrong tool.
+  </p>
+  <p>
+    There were three other compounding problems. <strong>Testability:</strong> SQL
+    transformations living inside stored procedures or ad-hoc query files are difficult to
+    unit test. You need a live database with the right schema and data to run them at all.
+    <strong>Reproducibility:</strong> without strict version control and dependency tracking,
+    it's easy to end up with transformations that work in production but can't be reliably
+    re-run from scratch. <strong>Reusability:</strong> each new client dataset meant
+    largely rewriting the same transformation logic with minor variations — no abstraction,
+    no shared components, just more SQL.
+  </p>
+
+  <div class="callout">
+    <strong>The core shift:</strong> move the transformation layer out of the database and
+    into Python, using Polars for in-memory processing. Load raw data from the database
+    once, transform entirely in memory, write results back. The database becomes a dumb
+    store — which is exactly what it should be in this pattern.
+  </div>
+
+  <!-- 2. WHY POLARS -->
+  <h2>Why Polars over pandas</h2>
+
+  <p>
+    The natural Python choice for dataframe manipulation is pandas. But pandas has two
+    properties that made it a poor fit here: it processes data eagerly row-by-row under
+    the hood in ways that don't parallelise well, and its memory footprint at scale is
+    large. For transformation pipelines over client datasets that could run into millions
+    of rows, these matter.
+  </p>
+  <p>
+    Polars is built on Apache Arrow and uses a lazy query engine backed by Rust. The
+    practical implications are meaningful: operations are vectorised across columns,
+    parallelism happens automatically across CPU cores, and the lazy API allows the query
+    planner to optimise the full transformation graph before executing any of it —
+    pushing filters early, eliminating redundant passes over data, merging operations
+    where possible. For the kinds of transformations in these pipelines — large joins,
+    grouped aggregations, string cleaning, window functions — Polars consistently
+    outperforms pandas by a significant margin and uses substantially less memory.
+  </p>
+  <p>
+    There's also an expressiveness argument. Polars' method-chaining API maps cleanly
+    onto transformation logic — a sequence of operations reads like a description of
+    the pipeline, which matters when the person reading it next isn't the person who
+    wrote it.
+  </p>
+
+  <!-- 3. POLARS IN PRACTICE -->
+  <h2>The Transformations in Practice</h2>
+
+  <p>
+    To make the comparison concrete, here are the kinds of transformations that moved
+    from SQL to Polars.
+  </p>
+
+  <h3>Joins and aggregations</h3>
+
+  <span class="code-label">before — SQL in the database</span>
+  <pre><code><span class="kw">SELECT</span>
+    p.patient_id,
+    p.admission_date,
+    p.discharge_date,
+    <span class="fn">DATEDIFF</span>(day, p.admission_date, p.discharge_date) <span class="kw">AS</span> los_days,
+    <span class="fn">COUNT</span>(c.claim_id)                                  <span class="kw">AS</span> claim_count,
+    <span class="fn">SUM</span>(c.claim_amount)                                <span class="kw">AS</span> total_claimed
+<span class="kw">FROM</span> patients p
+<span class="kw">LEFT JOIN</span> claims c
+    <span class="kw">ON</span> p.patient_id = c.patient_id
+    <span class="kw">AND</span> c.claim_date <span class="kw">BETWEEN</span> p.admission_date <span class="kw">AND</span> p.discharge_date
+<span class="kw">GROUP BY</span>
+    p.patient_id, p.admission_date, p.discharge_date
+</code></pre>
+
+  <span class="code-label">after — polars in-memory</span>
+  <pre><code><span class="kw">import</span> polars <span class="kw">as</span> pl
+
+patients = pl.scan_csv(<span class="st">"patients.csv"</span>)   <span class="cm"># lazy — nothing loaded yet</span>
+claims   = pl.scan_csv(<span class="st">"claims.csv"</span>)
+
+result = (
+    patients
+    .join(claims, on=<span class="st">"patient_id"</span>, how=<span class="st">"left"</span>)
+    .filter(
+        pl.col(<span class="st">"claim_date"</span>).is_between(
+            pl.col(<span class="st">"admission_date"</span>), pl.col(<span class="st">"discharge_date"</span>)
+        )
+    )
+    .group_by([<span class="st">"patient_id"</span>, <span class="st">"admission_date"</span>, <span class="st">"discharge_date"</span>])
+    .agg([
+        pl.col(<span class="st">"claim_id"</span>).count().alias(<span class="st">"claim_count"</span>),
+        pl.col(<span class="st">"claim_amount"</span>).sum().alias(<span class="st">"total_claimed"</span>),
+        (pl.col(<span class="st">"discharge_date"</span>) - pl.col(<span class="st">"admission_date"</span>))
+          .dt.total_days().first().alias(<span class="st">"los_days"</span>),
+    ])
+    .collect()   <span class="cm"># execution happens here — query plan optimised first</span>
+)
+</code></pre>
+
+  <h3>String cleaning and regex</h3>
+
+  <span class="code-label">string normalisation in polars</span>
+  <pre><code>clean = (
+    raw
+    .with_columns([
+        <span class="cm"># Trim whitespace and normalise case</span>
+        pl.col(<span class="st">"diagnosis_code"</span>).str.strip_chars().str.to_uppercase(),
+
+        <span class="cm"># Extract ICD code prefix via regex</span>
+        pl.col(<span class="st">"diagnosis_text"</span>)
+          .str.extract(r<span class="st">"([A-Z]\d{2}\.?\d*)"</span>, group_index=<span class="nm">0</span>)
+          .alias(<span class="st">"icd_code"</span>),
+
+        <span class="cm"># Replace known dirty values</span>
+        pl.col(<span class="st">"provider_name"</span>)
+          .str.replace_all(r<span class="st">"[^\w\s]"</span>, <span class="st">""</span>)
+          .str.strip_chars(),
+    ])
+)
+</code></pre>
+
+  <h3>Date parsing and window functions</h3>
+
+  <span class="code-label">rolling window aggregation</span>
+  <pre><code>windowed = (
+    episodes
+    .sort([<span class="st">"patient_id"</span>, <span class="st">"episode_date"</span>])
+    .with_columns([
+        <span class="cm"># Days since previous episode per patient</span>
+        (pl.col(<span class="st">"episode_date"</span>) - pl.col(<span class="st">"episode_date"</span>).shift(<span class="nm">1</span>))
+          .dt.total_days()
+          .over(<span class="st">"patient_id"</span>)
+          .alias(<span class="st">"days_since_last"</span>),
+
+        <span class="cm"># 90-day rolling claim total per patient</span>
+        pl.col(<span class="st">"claim_amount"</span>)
+          .rolling_sum(window_size=<span class="nm">90</span>, by=<span class="st">"episode_date"</span>, closed=<span class="st">"right"</span>)
+          .over(<span class="st">"patient_id"</span>)
+          .alias(<span class="st">"rolling_90d_claims"</span>),
+    ])
+)
+</code></pre>
+
+  <!-- 4. THE FRAMEWORK -->
+  <h2>The Transform / Transformer Framework</h2>
+
+  <p>
+    Replacing SQL with Polars solves the compute cost problem. But a collection of
+    standalone Polars scripts is still just a collection of standalone scripts — hard to
+    compose, hard to test in isolation, and requiring bespoke wiring for every new pipeline.
+    The goal was a proper abstraction layer: define transformation logic once as reusable
+    classes, declare pipelines in config, and let a builder assemble and run them.
+  </p>
+  <p>
+    The solution is a two-level class hierarchy. <strong>Transform</strong> encapsulates a
+    single operation on a DataFrame. <strong>Transformer</strong> holds an ordered group of
+    Transforms and runs them in sequence. A pipeline's YAML config declares which
+    Transformers to build and which predefined Transforms go inside each one — the builder
+    reads it, instantiates the objects, and wires them into Airflow tasks.
+  </p>
+
+  <h3>The Transform class</h3>
+
+  <p>
+    A Transform knows its input column names, its output column names, and optionally any
+    dimension DataFrames it needs — lookup tables, reference data, anything that isn't the
+    primary input. Its only public method is <code>apply()</code>: takes a DataFrame,
+    returns a DataFrame.
+  </p>
+
+  <span class="code-label">transform base class</span>
+  <pre><code><span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass, field
+<span class="kw">from</span> abc <span class="kw">import</span> ABC, abstractmethod
+<span class="kw">import</span> polars <span class="kw">as</span> pl
+
+<span class="dc">@dataclass</span>
+<span class="kw">class</span> <span class="fn">Transform</span>(ABC):
+    input_cols:  list[str]
+    output_cols: list[str]
+    dimensions:  dict[str, pl.DataFrame] = field(default_factory=dict)
+
+    <span class="dc">@abstractmethod</span>
+    <span class="kw">def</span> <span class="fn">apply</span>(self, df: pl.DataFrame) -> pl.DataFrame: ...
+</code></pre>
+
+  <p>
+    Concrete subclasses implement <code>apply()</code> with specific Polars logic.
+    The <code>dimensions</code> dict keeps <code>apply()</code>'s signature clean regardless
+    of complexity — a join against a large reference table and a simple column rename both
+    have the same interface. <code>input_cols</code> and <code>output_cols</code> can be
+    validated at build time, catching schema mismatches before a DAG run fails mid-execution.
+  </p>
+
+  <span class="code-label">predefined transform subclasses</span>
+  <pre><code><span class="dc">@dataclass</span>
+<span class="kw">class</span> <span class="fn">NormaliseCodesTransform</span>(Transform):
+    <span class="kw">def</span> <span class="fn">apply</span>(self, df: pl.DataFrame) -> pl.DataFrame:
+        <span class="kw">return</span> df.with_columns([
+            pl.col(c).str.strip_chars().str.to_uppercase()
+            <span class="kw">for</span> c <span class="kw">in</span> self.input_cols
+        ])
+
+<span class="dc">@dataclass</span>
+<span class="kw">class</span> <span class="fn">JoinDimensionTransform</span>(Transform):
+    on: str = <span class="st">""</span>
+    <span class="kw">def</span> <span class="fn">apply</span>(self, df: pl.DataFrame) -> pl.DataFrame:
+        <span class="kw">return</span> df.join(self.dimensions[<span class="st">"dim"</span>], on=self.on, how=<span class="st">"left"</span>)
+
+<span class="dc">@dataclass</span>
+<span class="kw">class</span> <span class="fn">RollingWindowTransform</span>(Transform):
+    partition_by: str = <span class="st">""</span>
+    order_by:     str = <span class="st">""</span>
+    window_days:  int = <span class="nm">90</span>
+    <span class="kw">def</span> <span class="fn">apply</span>(self, df: pl.DataFrame) -> pl.DataFrame:
+        <span class="kw">return</span> (
+            df.sort([self.partition_by, self.order_by])
+            .with_columns([
+                pl.col(c)
+                  .rolling_sum(window_size=self.window_days,
+                               by=self.order_by, closed=<span class="st">"right"</span>)
+                  .over(self.partition_by)
+                  .alias(<span class="st">f"{c}_rolling_{self.window_days}d"</span>)
+                <span class="kw">for</span> c <span class="kw">in</span> self.input_cols
+            ])
+        )
+</code></pre>
+
+  <h3>The Transformer class</h3>
+
+  <p>
+    A Transformer is a deliberately thin ordered container. It calls each Transform's
+    <code>apply()</code> in sequence, piping the output of one into the input of the next:
+  </p>
+
+  <span class="code-label">transformer — ordered composition</span>
+  <pre><code><span class="dc">@dataclass</span>
+<span class="kw">class</span> <span class="fn">Transformer</span>:
+    name:       str
+    transforms: list[Transform]
+
+    <span class="kw">def</span> <span class="fn">run</span>(self, df: pl.DataFrame) -> pl.DataFrame:
+        <span class="kw">for</span> t <span class="kw">in</span> self.transforms:
+            df = t.apply(df)
+        <span class="kw">return</span> df
+</code></pre>
+
+  <h3>Declaring pipelines in YAML</h3>
+
+  <p>
+    Each pipeline is declared in a YAML file. The config lists Transformers by name, and
+    each Transformer lists its Transforms by name — each with the column and parameter
+    config the builder needs to instantiate them. The builder reads this, looks up each
+    Transform class by name in a registry, instantiates it with the provided config, and
+    assembles the Transformer:
+  </p>
+
+  <span class="code-label">pipeline config — transformers and transforms declared in yaml</span>
+  <pre><code><span class="key">pipeline</span>:
+  <span class="key">name</span>: <span class="val">patient_episode_summary</span>
+  <span class="key">schedule</span>: <span class="val">"@daily"</span>
+
+  <span class="key">sources</span>:
+    <span class="key">patients</span>:
+      <span class="key">type</span>: <span class="val">sql</span>
+      <span class="key">query</span>: <span class="val">SELECT * FROM patients WHERE active = 1</span>
+      <span class="key">connection</span>: <span class="val">client_db</span>
+    <span class="key">dim_icd</span>:
+      <span class="key">type</span>: <span class="val">sql</span>
+      <span class="key">query</span>: <span class="val">SELECT code, description FROM icd_reference</span>
+      <span class="key">connection</span>: <span class="val">client_db</span>
+
+  <span class="key">transformers</span>:
+    - <span class="key">name</span>: <span class="val">cleaning</span>
+      <span class="key">transforms</span>:
+        - <span class="key">type</span>: <span class="val">NormaliseCodesTransform</span>
+          <span class="key">input_cols</span>:  [<span class="val">diagnosis_code</span>, <span class="val">procedure_code</span>]
+          <span class="key">output_cols</span>: [<span class="val">diagnosis_code</span>, <span class="val">procedure_code</span>]
+
+        - <span class="key">type</span>: <span class="val">JoinDimensionTransform</span>
+          <span class="key">input_cols</span>:  [<span class="val">diagnosis_code</span>]
+          <span class="key">output_cols</span>: [<span class="val">diagnosis_code</span>, <span class="val">icd_description</span>]
+          <span class="key">dimension_source</span>: <span class="val">dim_icd</span>
+          <span class="key">on</span>: <span class="val">diagnosis_code</span>
+
+    - <span class="key">name</span>: <span class="val">enrichment</span>
+      <span class="key">transforms</span>:
+        - <span class="key">type</span>: <span class="val">RollingWindowTransform</span>
+          <span class="key">input_cols</span>:  [<span class="val">claim_amount</span>]
+          <span class="key">output_cols</span>: [<span class="val">claim_amount_rolling_90d</span>]
+          <span class="key">partition_by</span>: <span class="val">patient_id</span>
+          <span class="key">order_by</span>: <span class="val">episode_date</span>
+          <span class="key">window_days</span>: <span class="nm">90</span>
+
+  <span class="key">output</span>:
+    <span class="key">destination</span>: <span class="val">client_db</span>
+    <span class="key">table</span>: <span class="val">episode_summary</span>
+    <span class="key">mode</span>: <span class="val">replace</span>
+</code></pre>
+
+  <h3>The builder</h3>
+
+  <p>
+    The builder reads the config, instantiates each declared Transform from the registry,
+    assembles the Transformers, and wires each one into an Airflow task. Adding a new
+    pipeline is a YAML file — no builder changes, no new Python wiring:
+  </p>
+
+  <span class="code-label">builder — yaml to transformer instances to airflow tasks</span>
+  <pre><code><span class="kw">import</span> yaml, importlib, glob, os
+<span class="kw">from</span> airflow <span class="kw">import</span> DAG
+<span class="kw">from</span> airflow.operators.python <span class="kw">import</span> PythonOperator
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime
+
+<span class="cm"># Registry maps transform type name → class</span>
+TRANSFORM_REGISTRY: dict[str, type[Transform]] = {
+    <span class="st">"NormaliseCodesTransform"</span>: NormaliseCodesTransform,
+    <span class="st">"JoinDimensionTransform"</span>:  JoinDimensionTransform,
+    <span class="st">"RollingWindowTransform"</span>:  RollingWindowTransform,
+}
+
+<span class="kw">def</span> <span class="fn">build_transform</span>(cfg: dict, sources: dict) -> Transform:
+    cls = TRANSFORM_REGISTRY[cfg[<span class="st">"type"</span>]]
+    dims = {}
+    <span class="kw">if</span> <span class="st">"dimension_source"</span> <span class="kw">in</span> cfg:
+        dims[<span class="st">"dim"</span>] = sources[cfg[<span class="st">"dimension_source"</span>]]
+    <span class="kw">return</span> cls(
+        input_cols=cfg[<span class="st">"input_cols"</span>],
+        output_cols=cfg[<span class="st">"output_cols"</span>],
+        dimensions=dims,
+        **{k: v <span class="kw">for</span> k, v <span class="kw">in</span> cfg.items()
+           <span class="kw">if</span> k <span class="kw">not in</span> {<span class="st">"type"</span>, <span class="st">"input_cols"</span>, <span class="st">"output_cols"</span>, <span class="st">"dimension_source"</span>}},
+    )
+
+<span class="kw">def</span> <span class="fn">build_dag</span>(config_path: str, sources: dict) -> DAG:
+    <span class="kw">with</span> open(config_path) <span class="kw">as</span> f:
+        cfg = yaml.safe_load(f)[<span class="st">"pipeline"</span>]
+
+    transformers = [
+        Transformer(
+            name=t_cfg[<span class="st">"name"</span>],
+            transforms=[build_transform(tr, sources) <span class="kw">for</span> tr <span class="kw">in</span> t_cfg[<span class="st">"transforms"</span>]],
+        )
+        <span class="kw">for</span> t_cfg <span class="kw">in</span> cfg[<span class="st">"transformers"</span>]
+    ]
+
+    dag = DAG(cfg[<span class="st">"name"</span>], start_date=datetime(<span class="nm">2024</span>, <span class="nm">1</span>, <span class="nm">1</span>),
+              schedule_interval=cfg.get(<span class="st">"schedule"</span>, <span class="st">"@daily"</span>), catchup=<span class="kw">False</span>)
+
+    prev_task = <span class="kw">None</span>
+    <span class="kw">with</span> dag:
+        <span class="kw">for</span> transformer <span class="kw">in</span> transformers:
+            task = PythonOperator(
+                task_id=transformer.name,
+                python_callable=transformer.run,
+            )
+            <span class="kw">if</span> prev_task:
+                prev_task >> task
+            prev_task = task
+    <span class="kw">return</span> dag
+</code></pre>
+
+  <div class="callout">
+    <strong>Testing the hierarchy:</strong> because <code>apply()</code> takes a plain
+    Polars DataFrame and returns one, unit testing a Transform requires no Airflow, no
+    database, no infrastructure — just a DataFrame with the right schema and an assertion
+    on the result. A Transformer test calls <code>run()</code> and asserts the final output.
+    The entire transformation layer is covered without spinning up a single external
+    dependency.
+  </div>
+
+  <!-- 5. AIRFLOW INTEGRATION -->
+  <h2>Wiring It into Airflow</h2>
+
+  <p>
+    Airflow discovers DAGs by scanning a directory for Python files that expose DAG objects
+    at module level. A thin loader script does nothing but find YAML configs and call the
+    builder — the builder handles everything from there:
+  </p>
+
+  <span class="code-label">airflow dag loader — auto-discovers yaml configs</span>
+  <pre><code><span class="kw">import</span> os, glob
+<span class="kw">from</span> sources <span class="kw">import</span> load_sources   <span class="cm"># loads declared SQL sources from config</span>
+
+CONFIG_DIR = os.environ.get(<span class="st">"PIPELINE_CONFIG_DIR"</span>, <span class="st">"/opt/pipelines/configs"</span>)
+
+<span class="kw">for</span> config_path <span class="kw">in</span> glob.glob(<span class="st">f"{CONFIG_DIR}/*.yaml"</span>):
+    sources  = load_sources(config_path)
+    dag_name = os.path.splitext(os.path.basename(config_path))[<span class="nm">0</span>]
+    globals()[dag_name] = build_dag(config_path, sources)
+</code></pre>
+
+  <p>
+    Adding a new pipeline means one YAML file. Airflow picks it up on the next scan,
+    the builder instantiates the declared Transforms and Transformers, and the DAG
+    appears with one task per Transformer — named, ordered, and independently retryable.
+  </p>
+
+  <!-- 6. WHAT IMPROVED -->
+  <h2>What Actually Changed</h2>
+
+  <p>
+    <strong>Database compute cost dropped significantly.</strong> The database now handles
+    only raw data storage and simple SELECT queries to extract source data. All transformation
+    logic — joins, aggregations, string cleaning, window functions — runs in-memory on the
+    Airflow worker. For large client datasets, the cost difference per pipeline run is
+    meaningful, and it compounds across every client and every scheduled run.
+  </p>
+  <p>
+    <strong>Pipeline creation time fell from days to hours.</strong> Before the framework,
+    a new client pipeline meant writing SQL transforms, setting up database objects, and
+    manually wiring Airflow tasks. After, it meant writing a YAML config against the
+    existing transform registry. Standard operations — joins, aggregations, cleaning — need
+    no new code at all.
+  </p>
+  <p>
+    <strong>Transforms became testable.</strong> A transform function takes a Polars
+    DataFrame and returns a Polars DataFrame. Testing it requires no database, no Airflow,
+    no infrastructure — just a DataFrame with the right schema and a pytest assertion.
+    This is the biggest quality-of-life improvement: catching transform logic errors in
+    a test run rather than a failed Airflow DAG.
+  </p>
+  <p>
+    <strong>Pipelines became auditable.</strong> The YAML config is version-controlled.
+    The Airflow DAG run logs are structured and searchable. Every pipeline run is
+    reproducible from the same config against the same source data. This matters for
+    actuarial analysis where the provenance of a data preparation step can be questioned.
+  </p>
+
+  <div class="callout callout-warn">
+    <strong>Where this pattern breaks down:</strong> in-memory processing has a memory
+    ceiling. For datasets large enough that they don't fit comfortably in the worker's RAM,
+    Polars' lazy streaming mode helps — but there's a point where you're better off pushing
+    the aggregation back to the database or moving to a distributed compute layer like
+    Spark. Know your data sizes. For the datasets in this context — client health insurance
+    data, tens of millions of rows at most — in-memory Polars was well within bounds.
+  </div>
+
+  <!-- 7. TAKEAWAYS -->
+  <h2>Key Takeaways</h2>
+
+  <p>
+    <strong>1. The database is not a compute engine for your application logic.</strong>
+    Using it for systematic data transformation is convenient until it isn't — then it's
+    expensive, opaque, and hard to test. Move transformation logic to where it belongs:
+    application code, with version control, unit tests, and a proper abstraction layer.
+  </p>
+  <p>
+    <strong>2. Polars' lazy API is the right default.</strong> Build the full transformation
+    chain as a lazy query, let the planner optimise it, then call <code>.collect()</code>
+    once at the end. Calling <code>.collect()</code> mid-chain — to inspect an intermediate
+    result — breaks the optimisation. Use <code>.fetch(n)</code> for development inspection
+    instead.
+  </p>
+  <p>
+    <strong>3. Separate transform logic from pipeline wiring.</strong> Transforms are pure
+    data operations; Transformers are composition containers; the DAG builder is
+    orchestration. Keeping these three concerns separate means each can be changed, tested,
+    and extended independently. Adding a new Transform type doesn't touch the DAG builder;
+    restructuring Transformer groups doesn't touch the Transform classes.
+  </p>
+  <p>
+    <strong>4. Validate schemas at construction time.</strong> Because each Transform
+    declares its <code>input_cols</code> and <code>output_cols</code>, the full pipeline's
+    schema contract can be validated when the DAG is built — before any data is loaded.
+    Catching a missing column at construction time is far cheaper than catching it in a
+    running Airflow task an hour into a pipeline run.
+  </p>
+  <p>
+    <strong>5. Transformer boundaries are natural Airflow task boundaries.</strong>
+    Grouping Transforms into Transformers isn't just about organisation — it maps directly
+    to Airflow task retries, logging, and monitoring. When a pipeline fails, the failed
+    Transformer name tells you exactly which logical group of operations broke. You can
+    retry just that task without re-running the whole pipeline.
+  </p>
+
+</article>
+
+<footer class="article-footer">
+  <a href="../index.html" class="back-link">← Back to portfolio</a>
+  <a href="mailto:asher897@gmail.com">asher897@gmail.com</a>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cross-Attention for Domain Transfer in Medical Image Segmentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy:   #0D1B2A;
+    --ink:    #1A2332;
+    --steel:  #2E4057;
+    --slate:  #4A6274;
+    --mist:   #8FA8BA;
+    --fog:    #C8D8E4;
+    --cloud:  #EEF3F7;
+    --white:  #FAFCFE;
+    --accent: #1B7FBF;
+    --green:  #0EA67A;
+    --rule:   #D4E0EA;
+    --code-bg:#F0F4F8;
+    --serif:  'DM Serif Display', Georgia, serif;
+    --sans:   'DM Sans', system-ui, sans-serif;
+    --mono:   'DM Mono', monospace;
+  }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--sans); background: var(--white); color: var(--ink); font-size: 17px; line-height: 1.8; -webkit-font-smoothing: antialiased; }
+
+  .article-header { max-width: 720px; margin: 0 auto; padding: 5rem 2rem 3rem; border-bottom: 1px solid var(--rule); }
+  .article-meta { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; margin-bottom: 1.2rem; display: flex; gap: 1.5rem; align-items: center; }
+  .article-meta span { color: var(--mist); }
+  h1 { font-family: var(--serif); font-size: clamp(2rem, 4vw, 3rem); font-weight: 400; color: var(--navy); line-height: 1.15; letter-spacing: -0.01em; margin-bottom: 1.25rem; }
+  .article-lede { font-size: 1.15rem; color: var(--slate); line-height: 1.65; font-weight: 300; border-left: 3px solid var(--accent); padding-left: 1.25rem; margin-top: 1.5rem; }
+
+  .article-body { max-width: 720px; margin: 0 auto; padding: 3rem 2rem 6rem; }
+
+  h2 { font-family: var(--serif); font-size: 1.7rem; font-weight: 400; color: var(--navy); line-height: 1.25; margin: 3rem 0 1rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
+  h2:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+  h3 { font-size: 0.8rem; font-weight: 500; color: var(--steel); letter-spacing: 0.04em; text-transform: uppercase; margin: 2rem 0 0.6rem; }
+
+  p { color: var(--slate); margin-bottom: 1.25rem; }
+  p:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 500; }
+  em { font-style: italic; color: var(--steel); }
+
+  pre { background: var(--code-bg); border: 1px solid var(--rule); border-radius: 4px; padding: 1.5rem; overflow-x: auto; margin: 1.5rem 0; }
+  pre code { font-family: var(--mono); font-size: 13.5px; line-height: 1.7; color: var(--ink); }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--cloud); color: var(--steel); padding: 1px 5px; border-radius: 3px; border: 1px solid var(--rule); }
+  pre code { background: none; border: none; padding: 0; font-size: 13.5px; }
+  .code-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--mist); text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
+
+  .kw  { color: #185FA5; }
+  .fn  { color: #0EA67A; }
+  .cm  { color: #9EB5C4; font-style: italic; }
+  .st  { color: #BA7517; }
+  .nm  { color: #3C3489; }
+  .dc  { color: #993556; }
+
+  .callout { background: var(--cloud); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 1rem 1.25rem; margin: 1.75rem 0; font-size: 0.93rem; color: var(--steel); line-height: 1.65; }
+  .callout strong { color: var(--accent); }
+  .callout-warn { border-left-color: #BA7517; background: #FAEEDA; }
+  .callout-warn strong { color: #854F0B; }
+  .callout-honest { border-left-color: var(--green); background: #EAF3DE; }
+  .callout-honest strong { color: #3B6D11; }
+
+  .figure { margin: 2rem 0; padding: 1.5rem; background: var(--cloud); border-radius: 4px; border: 1px solid var(--rule); }
+  .figure-caption { font-family: var(--mono); font-size: 11px; color: var(--mist); letter-spacing: 0.04em; margin-top: 0.75rem; display: block; line-height: 1.5; }
+  .diagram { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; color: var(--steel); white-space: pre; overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.9rem; }
+  th { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); text-align: left; padding: 0.5rem 0.75rem; border-bottom: 2px solid var(--rule); }
+  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--rule); color: var(--slate); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td.best { color: var(--green); font-weight: 500; }
+  td.worse { color: #993556; }
+
+  .article-footer { max-width: 720px; margin: 0 auto; padding: 2rem; border-top: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: center; }
+  .article-footer a { font-family: var(--mono); font-size: 12px; color: var(--accent); text-decoration: none; letter-spacing: 0.04em; }
+  .article-footer a:hover { text-decoration: underline; }
+  .back-link { color: var(--mist); font-family: var(--mono); font-size: 12px; text-decoration: none; }
+  .back-link:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header class="article-header">
+  <div class="article-meta">
+    Computer Vision <span>·</span> Deep Learning <span>·</span> Medical Imaging
+    <span style="margin-left:auto;">2025</span>
+  </div>
+  <h1>Cross-Attention for Domain Transfer in Medical Image Segmentation</h1>
+  <p class="article-lede">
+    For my Honours research at Wits I built a segmentation model that attends to a bag of
+    context images while processing each input — forcing it to learn what's general about
+    a disease, not just what's specific to a training image. The results were mixed in the
+    best possible way: the mechanism worked, the segmentation didn't improve, and that
+    distinction turned out to be the most interesting finding.
+  </p>
+</header>
+
+<article class="article-body">
+
+  <!-- 1. THE PROBLEM -->
+  <h2>The Problem: Models That Don't Travel</h2>
+
+  <p>
+    Medical image segmentation has a domain transfer problem. A model trained to segment
+    COVID-19 lesions in chest X-rays can perform well on its training distribution and then
+    fail quietly on a different dataset of the same disease — different hospital, different
+    scanner, slightly different patient population. The deeper problem is that it will often
+    fail even more sharply on a <em>related</em> disease it was never trained on at all.
+  </p>
+  <p>
+    This matters practically because annotating medical images is expensive and slow — every
+    pixel label requires a radiologist. The result is that most medical segmentation datasets
+    are small by computer vision standards, models overfit to their source domain, and
+    generalisation suffers. The question I wanted to explore was: <em>can we give the model
+    a structural mechanism that forces it to learn features general to a disease category,
+    rather than features specific to a training image?</em>
+  </p>
+  <p>
+    A real instance of this problem exists in South African radiology: CAD systems trained to
+    detect tuberculosis in chest X-rays degrade significantly when silicotuberculosis cases
+    are introduced. The visual presentations are similar enough to share features, but
+    different enough to break models that learned too specifically. That's the class of
+    problem this research aimed to address.
+  </p>
+
+  <!-- 2. THE APPROACH -->
+  <h2>The Idea: Bags and Attention</h2>
+
+  <p>
+    The core proposal was to process images not in isolation but in <strong>bags</strong> —
+    a focus image (the one being segmented) accompanied by a set of context images, all
+    sharing the same disease label. The model would attend to the context images' features
+    while processing the focus image, using them as a reference signal for what the disease
+    looks like across different patients and presentations.
+  </p>
+  <p>
+    The intuition draws a parallel with few-shot learning: if you show a model not just the
+    image you want segmented but also several other examples of the same condition, it has
+    more information to anchor what it's looking for. The difference from few-shot learning
+    is that the context images here might come from a <em>different</em> category to the
+    focus image — which is what creates a training signal. The model must learn to classify
+    whether the bag is same-category or mixed, and in doing so, must learn to use the
+    contextual features meaningfully.
+  </p>
+
+  <div class="callout">
+    <strong>The training signal:</strong> by asking the model to classify whether the focus
+    image and context images share a label, we force it to actually use the context features.
+    A model that ignores context images cannot solve the classification task. This is the
+    mechanism that drives genuine feature learning rather than incidental correlation.
+  </div>
+
+  <!-- 3. ARCHITECTURE -->
+  <h2>Architecture: U-Net with CCT and CCA Modules</h2>
+
+  <p>
+    The base architecture is a U-Net with a ResNet50 encoder pre-trained on ImageNet weights.
+    This was chosen over more complex transformer-based architectures — TransUNet, Swin-UNet —
+    partly because ViT-based models are known to underperform CNNs on small datasets, and
+    partly because the medical datasets available here were relatively modest in size.
+  </p>
+  <p>
+    The cross-attention mechanism was built by adapting the CCT (Channel-wise Cross Fusion
+    Transformer) and CCA (Channel-wise Cross Attention) modules from UCTransNet, with a
+    key modification: rather than attending within a single image's feature maps, the
+    CCT was reworked to attend between the focus image and the bag of context images.
+  </p>
+
+  <div class="figure">
+    <div class="diagram">  Focus Image              Context Images (bag of 4)
+       │                        │
+       ▼                        ▼
+  ┌────────────────── ResNet50 Encoder ──────────────────────┐
+  │  Skip 1  │  Skip 2  │  Skip 3  │  Skip 4  │  Bottleneck │
+  └────┬─────┴────┬─────┴────┬─────┴────┬─────┴──────┬──────┘
+       │          │          │          │             │
+       │    Per skip connection:                      │
+       │    ┌─────────────────────────────┐           │
+       │    │  CCT Module                 │           │
+       │    │  Q ◄── context image feats  │           │
+       │    │  K ◄── focus image feats    │           │
+       │    │  V ◄── focus image feats    │           │
+       │    │  (channel-wise, patched)    │           │
+       │    └──────────────┬──────────────┘           │
+       │                   │ attended features (Oi)   │
+       │    ┌──────────────▼──────────────┐           │
+       │    │  CCA Module                 │           │
+       │    │  Gates Oi against decoder   │           │
+       │    │  output via global avg pool │           │
+       │    └──────────────┬──────────────┘           │
+       │                   │                          │
+       ▼                   ▼                          ▼
+  ┌───────────────── U-Net Decoder ──────────────────────────┐
+  │          Segmentation Map  +  Classification Head        │
+  └──────────────────────────────────────────────────────────┘</div>
+    <span class="figure-caption">Fig 1 — Architecture overview. The CCT and CCA modules sit on every skip connection. Context images drive the query embeddings in the CCT; focus image features form the keys and values. A classification head on the segmentation output determines whether focus and context images share a label.</span>
+  </div>
+
+  <h3>The CCT module in detail</h3>
+
+  <p>
+    The critical modification to UCTransNet's CCT is in how Q, K, and V are formed. In
+    the original, all embeddings come from the same image's encoder features across skip
+    connections — it is self-attention. In this research, the queries come from the context
+    images and the keys and values come from the focus image:
+  </p>
+
+  <span class="code-label">CCT — cross-image attention setup</span>
+  <pre><code><span class="cm"># Focus image feature map at skip level i: Fi  — shape (N, C, H, W)</span>
+<span class="cm"># Bag of context feature maps: BCi            — shape (N, B, C, H, W)</span>
+<span class="cm"># where B = bag size (4 context images)</span>
+
+<span class="cm"># Both are layer-normalised, then patched via average pooling</span>
+<span class="cm"># Patch size PS = H / P  (P is a per-skip-level hyperparameter)</span>
+
+<span class="cm"># Context images → queries (what to look for)</span>
+<span class="cm"># Focus image    → keys and values (where and what to retrieve)</span>
+Qi = depthwise_conv(avg_pool(BCi), W_Q)   <span class="cm"># (N, B·C, H_p·W_p)</span>
+Ki = depthwise_conv(avg_pool(Fi),  W_K)   <span class="cm"># (N, C,   H_p·W_p)</span>
+Vi = depthwise_conv(avg_pool(Fi),  W_V)   <span class="cm"># (N, C,   H_p·W_p)</span>
+
+<span class="cm"># Multi-head attention along the channel dimension</span>
+MHCAi = multihead_attention(Q=Qi, K=Ki, V=Vi)
+
+<span class="cm"># Upsample back to focus image spatial dims, then residual connection</span>
+Oi = layer_norm(Fi + depthwise_conv(upsample(MHCAi)))
+<span class="cm"># Oi: (N, C, H, W) — same shape as Fi, enriched with context</span>
+</code></pre>
+
+  <p>
+    The channel-wise patching is worth explaining: rather than attending over every spatial
+    position (which would be prohibitively expensive for image-sized tensors), the feature
+    maps are divided into patches and average-pooled — each token in the attention sequence
+    represents a patch's channel-wise summary. The patch number hyperparameter varies per
+    skip level (8, 8, 16, 16, 32 from deepest to shallowest) to match the spatial scale
+    at each level.
+  </p>
+
+  <h3>The CCA module</h3>
+
+  <p>
+    The CCT output <code>Oi</code> is then passed through the CCA before being concatenated
+    onto the decoder. The CCA uses global average pooling to compute a channel-wise gating
+    signal — combining information from <code>Oi</code> and the decoder's previous layer
+    output — that modulates how much of the attended features actually flows into the decoder:
+  </p>
+
+  <span class="code-label">CCA — channel-wise gating</span>
+  <pre><code><span class="cm"># Oi: CCT output — attended focus features</span>
+<span class="cm"># Di: decoder output at this level (post-upsample)</span>
+
+<span class="cm"># Global average pool each to C×1×1</span>
+Mi = relu(L_O @ gap(Oi)) + relu(L_D @ gap(Di))
+
+<span class="cm"># Sigmoid gate: how much of the CCT output is useful here?</span>
+Ai  = sigmoid(Mi)            <span class="cm"># (N, C, 1, 1)</span>
+Obi = Ai * Oi                <span class="cm"># element-wise channel scaling</span>
+
+<span class="cm"># Concatenate gated CCT output onto decoder features (as in standard U-Net)</span>
+decoder_input = concat([Obi, Di], dim=channel)
+</code></pre>
+
+  <h3>The classification head and loss function</h3>
+
+  <p>
+    A binary classification head sits on top of the segmentation output. It flattens the
+    segmentation map and passes it through a linear layer to predict whether the focus image
+    shares its label with the context images (1) or not (0). The full loss function combines
+    three terms:
+  </p>
+
+  <span class="code-label">composite loss function</span>
+  <pre><code>Loss = λ_seg · (λ_bce · BCE(seg_pred, seg_gt)
+             + λ_iou · (1 - IoU(seg_pred, seg_gt)))
+     + λ_ce  · CE(class_pred, bag_label)
+
+<span class="cm"># Hyperparameters used:</span>
+<span class="cm"># λ_seg = 1.0,  λ_bce = 1.0,  λ_iou = 0.5,  λ_ce = 0.4</span>
+<span class="cm"># Bag label probability (same-category bags): 0.65</span>
+<span class="cm"># Bag size: 4 context images per focus image</span>
+</code></pre>
+
+  <h3>Training pipeline</h3>
+
+  <p>
+    Training proceeded in two stages. First, the U-Net with the ResNet50 backbone was
+    pre-trained on the COVID-QU-Ex dataset using only focus images — no bagging, no
+    classification head — until early stopping on validation loss. Second, the pre-trained
+    weights were loaded and the CCT, CCA, and classification head were added and trained
+    jointly. Freezing the encoder was attempted but produced worse results than training
+    the full model end-to-end.
+  </p>
+
+  <!-- 4. DATASETS -->
+  <h2>Datasets and Evaluation Setup</h2>
+
+  <p>
+    All experiments used chest X-ray datasets. The model was trained on the
+    <strong>COVID-QU-Ex dataset</strong> — a curated collection of COVID-19, Pneumonia,
+    and Non-infection CXRs, with segmentation masks provided for COVID-19 lesions
+    (pneumonia masks are all-zero, as pneumonia was not the target label). Domain transfer
+    was evaluated on the <strong>Mendeley COVID-19 Segmentation and Severity Scoring
+    dataset</strong>, which was never seen during training.
+  </p>
+  <p>
+    The evaluation dataset served two purposes: it measured how well the segmentation
+    generalised to unseen data with related pathology, and it was used to evaluate the
+    bagging classifier's ability to correctly identify bag category on data it hadn't
+    been trained on.
+  </p>
+
+  <!-- 5. RESULTS -->
+  <h2>Results: What Worked and What Didn't</h2>
+
+  <h3>Baseline segmentation — picking the right backbone</h3>
+
+  <p>
+    Before introducing bagging, I compared several U-Net variants on the training dataset
+    test subset to identify the best segmentation backbone:
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>Model</th><th>Dice</th><th>IoU</th><th>Loss</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>U-Net</td><td>0.8157</td><td>0.6932</td><td>0.2520</td></tr>
+      <tr><td>Attention U-Net</td><td>0.8210</td><td>0.7010</td><td>0.2379</td></tr>
+      <tr><td>U-Net + ResNet50</td><td class="best">0.8507</td><td class="best">0.7439</td><td class="best">0.1979</td></tr>
+      <tr><td>Attention U-Net + ResNet50</td><td>0.8457</td><td>0.7366</td><td>0.2287</td></tr>
+      <tr><td>U-Net + ResNet50 + Bagging</td><td class="worse">0.7474</td><td class="worse">0.6067</td><td class="worse">0.2829*</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:0.85rem; color: var(--mist); margin-top: -0.75rem; margin-bottom: 1.5rem;">* Segmentation loss only. Full loss including CE classification term: 0.3626</p>
+
+  <p>
+    Two things stand out. First, the ResNet50 backbone provides a significant boost over the
+    plain U-Net — 0.8157 to 0.8507 Dice. Second, and interestingly, the attention gate in
+    the Attention U-Net provides a meaningful improvement on the base U-Net (0.8157 → 0.8210)
+    but adds nothing when the ResNet50 backbone is already present (0.8507 → 0.8457 — actually
+    slightly worse). The pre-trained backbone is already doing the feature enrichment that
+    the attention gate was helping with. The plain U-Net + ResNet50 was selected as the
+    segmentation backbone going forward.
+  </p>
+
+  <h3>Segmentation with bagging — the honest result</h3>
+
+  <table>
+    <thead>
+      <tr><th>Model</th><th>Dataset</th><th>Dice</th><th>IoU</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>U-Net + ResNet50</td><td>Training (test subset)</td><td class="best">0.8507</td><td class="best">0.7439</td></tr>
+      <tr><td>U-Net + ResNet50 + Bagging</td><td>Training (test subset)</td><td class="worse">0.7474</td><td class="worse">0.6067</td></tr>
+      <tr><td>U-Net + ResNet50</td><td>Evaluation (unseen)</td><td>0.5974</td><td>0.4414</td></tr>
+      <tr><td>U-Net + ResNet50 + Bagging</td><td>Evaluation (unseen)</td><td class="worse">0.5728</td><td class="worse">0.4139</td></tr>
+    </tbody>
+  </table>
+
+  <p>
+    The bagging model did not improve segmentation performance on either dataset. On the
+    training test subset, performance dropped noticeably. On the unseen evaluation dataset,
+    the drop was smaller but still present. These are the results as they are.
+  </p>
+
+  <div class="callout callout-honest">
+    <strong>Why this is still a meaningful result:</strong> the datasets used — COVID-19
+    chest X-ray segmentation — do not present the kind of difficulty that bagging was
+    designed to solve. A plain U-Net with a strong backbone can already segment COVID-19
+    lesions well. The hypothesis was specifically that bagging would help when there is a
+    genuine difficulty in extracting disease-specific features. Testing it on an already-solved
+    problem means the comparison baseline is already near its ceiling.
+  </div>
+
+  <h3>Bagging classification — the part that worked</h3>
+
+  <p>
+    The more revealing result is the classification performance. The model was asked to predict
+    whether the focus image shared its label with the context images — a task that can only be
+    solved by genuinely using the contextual features:
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>Dataset</th><th>Precision</th><th>Recall</th><th>F1</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>COVID-QU-Ex (training)</td><td class="best">0.95</td><td class="best">0.89</td><td class="best">0.91</td></tr>
+      <tr><td>Mendeley (unseen evaluation)</td><td>0.73</td><td>0.72</td><td>0.72</td></tr>
+    </tbody>
+  </table>
+
+  <p>
+    On the training dataset, the model achieves strong classification performance — an F1 of
+    0.91, correctly identifying same-category bags with 95% precision. On the unseen
+    evaluation dataset, performance drops to an F1 of 0.72, but this is still a meaningful
+    result: the model has never seen data from this dataset, yet it can generalise its
+    understanding of what makes a bag same-category or different-category across datasets.
+  </p>
+  <p>
+    The validation CE loss curve confirmed the mechanism was learning during training — the
+    classification loss decreased steadily across training steps, demonstrating that the
+    network was actively learning to use the contextual features rather than ignoring them.
+  </p>
+
+  <h3>COVID-19 classification — loss tells the story</h3>
+
+  <p>
+    Both variants — with and without bagging — achieved comparable classification scores on
+    the evaluation dataset (Precision, Recall, F1 all 0.82 for both). But the loss diverged
+    meaningfully: the standard U-Net produced a loss of 4.38 versus 1.39 for the bagging
+    variant. The bagging model's predictions were substantially more confident, even when the
+    hard classification metrics were the same. In a clinical context, prediction confidence
+    matters — a model that arrives at the right answer but with weak confidence is less
+    useful than one that is reliably certain.
+  </p>
+
+  <!-- 6. INTERPRETATION -->
+  <h2>What This Means</h2>
+
+  <p>
+    The research demonstrates a mechanism — not a solved problem. The model can learn to
+    use cross-image contextual features to identify the categorical context of the data it's
+    processing. That's the key finding. It doesn't yet translate into better segmentation
+    maps on the datasets tested, but those datasets weren't the hard case.
+  </p>
+  <p>
+    The paper's future work section points at the right application: the silicotuberculosis
+    problem in South African radiology, where CAD systems trained on TB data degrade when
+    silicoTB cases are introduced. That's a setting where the standard model genuinely
+    struggles, and where attending to a bag of same-category context images could provide
+    the anchor the model needs. Testing the approach there, or on any dataset where there is
+    a documented and specific difficulty in feature extraction, would be the meaningful
+    next experiment.
+  </p>
+
+  <div class="callout callout-warn">
+    <strong>On the segmentation performance drop:</strong> it's worth noting that the bagging
+    model carries a harder training objective — it is simultaneously learning to segment and
+    to classify bag membership. The segmentation performance drop on the training dataset
+    may partly reflect this added optimisation complexity. With more training epochs or
+    a staged fine-tuning approach (train classification to convergence first, then unfreeze
+    segmentation), the gap might narrow.
+  </div>
+
+  <!-- 7. TAKEAWAYS -->
+  <h2>Key Takeaways</h2>
+
+  <p>
+    <strong>1. The mechanism generalises.</strong> The bagging classifier achieving F1 of
+    0.72 on an entirely unseen dataset — with no target-domain labels — is the strongest
+    evidence that the model is learning something general about disease categories, not
+    just memorising training data patterns.
+  </p>
+  <p>
+    <strong>2. Evaluate on hard problems.</strong> Testing a domain transfer technique on a
+    dataset where the baseline already achieves 0.85 Dice tells you little. The hypothesis
+    needs to be tested where domain transfer genuinely fails — the silicoTB case, or any
+    setting where standard models show a documented performance cliff.
+  </p>
+  <p>
+    <strong>3. The CCT query/key inversion is the key design choice.</strong> Putting the
+    context images in the query and the focus image in the key/value positions is what forces
+    the model to ask "given what I know about this disease from other examples, what should I
+    be looking for in this image?" — rather than self-attending within the focus image.
+  </p>
+  <p>
+    <strong>4. Loss confidence can matter as much as accuracy.</strong> In binary
+    classification tasks where both models achieve the same hard metrics, the loss
+    divergence (4.38 vs 1.39) is meaningful signal — especially in clinical applications
+    where calibrated confidence matters for downstream decision-making.
+  </p>
+  <p>
+    <strong>5. Transformer modules on small medical datasets need a strong CNN foundation.</strong>
+    The attention gate added nothing on top of the ResNet50 backbone, and the ViT-based
+    literature shows the same pattern. In low-data regimes, a well-initialised CNN encoder
+    is hard to beat with attention alone — the two need to be combined thoughtfully.
+  </p>
+
+</article>
+
+<footer class="article-footer">
+  <a href="../index.html" class="back-link">← Back to portfolio</a>
+  <a href="mailto:asher897@gmail.com">asher897@gmail.com</a>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Postbox to Postal Service: Redesigning RabbitMQ Consumers for Performance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy:   #0D1B2A; --ink:    #1A2332; --steel:  #2E4057; --slate:  #4A6274;
+    --mist:   #8FA8BA; --fog:    #C8D8E4; --cloud:  #EEF3F7; --white:  #FAFCFE;
+    --accent: #1B7FBF; --green:  #0EA67A; --rule:   #D4E0EA; --code-bg:#F0F4F8;
+    --serif: 'DM Serif Display', Georgia, serif;
+    --sans:  'DM Sans', system-ui, sans-serif;
+    --mono:  'DM Mono', monospace;
+  }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--sans); background: var(--white); color: var(--ink); font-size: 17px; line-height: 1.8; -webkit-font-smoothing: antialiased; }
+  .article-header { max-width: 720px; margin: 0 auto; padding: 5rem 2rem 3rem; border-bottom: 1px solid var(--rule); }
+  .article-meta { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; margin-bottom: 1.2rem; display: flex; gap: 1.5rem; align-items: center; }
+  .article-meta span { color: var(--mist); }
+  h1 { font-family: var(--serif); font-size: clamp(2rem, 4vw, 3rem); font-weight: 400; color: var(--navy); line-height: 1.15; letter-spacing: -0.01em; margin-bottom: 1.25rem; }
+  .article-lede { font-size: 1.15rem; color: var(--slate); line-height: 1.65; font-weight: 300; border-left: 3px solid var(--accent); padding-left: 1.25rem; margin-top: 1.5rem; }
+  .article-body { max-width: 720px; margin: 0 auto; padding: 3rem 2rem 6rem; }
+  h2 { font-family: var(--serif); font-size: 1.7rem; font-weight: 400; color: var(--navy); line-height: 1.25; margin: 3rem 0 1rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
+  h2:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+  h3 { font-size: 0.8rem; font-weight: 500; color: var(--steel); letter-spacing: 0.04em; text-transform: uppercase; margin: 2rem 0 0.6rem; }
+  p { color: var(--slate); margin-bottom: 1.25rem; }
+  p:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 500; }
+  em { font-style: italic; color: var(--steel); }
+  pre { background: var(--code-bg); border: 1px solid var(--rule); border-radius: 4px; padding: 1.5rem; overflow-x: auto; margin: 1.5rem 0; }
+  pre code { font-family: var(--mono); font-size: 13.5px; line-height: 1.7; color: var(--ink); }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--cloud); color: var(--steel); padding: 1px 5px; border-radius: 3px; border: 1px solid var(--rule); }
+  pre code { background: none; border: none; padding: 0; font-size: 13.5px; }
+  .code-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--mist); text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
+  .kw { color: #185FA5; } .fn { color: #0EA67A; } .cm { color: #9EB5C4; font-style: italic; }
+  .st { color: #BA7517; } .nm { color: #3C3489; } .dc { color: #993556; }
+  .callout { background: var(--cloud); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 1rem 1.25rem; margin: 1.75rem 0; font-size: 0.93rem; color: var(--steel); line-height: 1.65; }
+  .callout strong { color: var(--accent); }
+  .callout-warn { border-left-color: #BA7517; background: #FAEEDA; }
+  .callout-warn strong { color: #854F0B; }
+  .article-footer { max-width: 720px; margin: 0 auto; padding: 2rem; border-top: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: center; }
+  .article-footer a { font-family: var(--mono); font-size: 12px; color: var(--accent); text-decoration: none; letter-spacing: 0.04em; }
+  .article-footer a:hover { text-decoration: underline; }
+  .back-link { color: var(--mist); font-family: var(--mono); font-size: 12px; text-decoration: none; }
+  .back-link:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header class="article-header">
+  <div class="article-meta">
+    Systems <span>·</span> Python <span>·</span> RabbitMQ
+    <span style="margin-left:auto;">2025</span>
+  </div>
+  <h1>Postbox to Postal Service: Redesigning RabbitMQ Consumers for Performance</h1>
+  <p class="article-lede">
+    Our RabbitMQ consumers were built on a polling loop — periodically asking the broker
+    "anything there?" and sleeping in between. Think of a postbox, the messenger places the message 
+    in the box and the consumer must go and fetch it. In theory this is a clean solution, but under load it doesn't hold up 
+    (especially when your service has to look at multiple queues). Switching to a
+    notification-based consumer (like a postal service, the messenger gives the postman a message and it will
+     get delivered to the consumer) with <code>basic_consume</code> and pika's <code>SelectConnection</code>
+    eliminated unnecessary CPU usage, reduced message latency to near-zero at idle, and made
+    the consumer far easier to reason about. Here's what changed and why it mattered.
+  </p>
+  <p style="font-family: var(--mono); font-size: 11px; color: var(--mist); margin-top: 1.25rem; letter-spacing: 0.04em;">
+    Note: code and examples are illustrative — not representative of the actual proprietary implementation.
+  </p>
+</header>
+
+<article class="article-body">
+
+  <!-- 1. THE POLLING PROBLEM -->
+  <h2>The Polling Loop and Its Costs</h2>
+
+  <p>
+    The original consumer used <code>basic.get</code> — RabbitMQ's synchronous single-message
+    fetch — called in a loop with a sleep interval between iterations. The logic was simple:
+    ask the broker for a message, process it if one arrived, sleep briefly, repeat.
+  </p>
+
+  <span class="code-label">before — basic.get polling loop</span>
+  <pre><code><span class="kw">import</span> pika
+<span class="kw">import</span> time
+
+<span class="kw">def</span> <span class="fn">run_consumer</span>(connection: pika.BlockingConnection, queue: str):
+    channel = connection.channel()
+    channel.queue_declare(queue=queue, durable=<span class="kw">True</span>)
+
+    <span class="kw">while True</span>:
+        method, properties, body = channel.basic_get(queue=queue, auto_ack=<span class="kw">False</span>)
+
+        <span class="kw">if</span> method <span class="kw">is None</span>:
+            <span class="cm"># Queue empty — sleep and try again</span>
+            time.sleep(<span class="nm">0.5</span>)
+            <span class="kw">continue</span>
+
+        <span class="kw">try</span>:
+            process_message(body)
+            channel.basic_ack(method.delivery_tag)
+        <span class="kw">except</span> Exception <span class="kw">as</span> e:
+            logger.error(<span class="st">f"Failed to process message: {e}"</span>)
+            channel.basic_nack(method.delivery_tag, requeue=<span class="kw">False</span>)
+</code></pre>
+
+  <p>
+    This pattern has four distinct problems that compound under load.
+  </p>
+
+  <p>
+    <strong>Unnecessary CPU usage between messages.</strong> Even with an idle queue, the
+    process spins — waking up every 500ms, issuing a network request to the broker, receiving
+    an empty response, going back to sleep. At low traffic this is invisible noise. Across
+    dozens of services running the same pattern simultaneously, it becomes meaningful
+    background load on both the application servers and the broker.
+  </p>
+  <p>
+    <strong>Latency introduced at idle.</strong> A message arriving just after a poll cycle
+    completes waits up to the full sleep interval before being picked up. At 500ms sleep,
+    that's up to 500ms of avoidable latency on every message that arrives to an otherwise
+    idle consumer — latency that has nothing to do with processing time.
+  </p>
+  <p>
+    <strong>Resource contention on the broker.</strong> RabbitMQ's <code>basic.get</code>
+    is designed for occasional synchronous fetches, not as a high-frequency polling
+    mechanism. Each call acquires locks on the queue internally. With many consumers polling
+    simultaneously, this creates contention on the broker that degrades throughput for
+    everyone — including other services using the same broker.
+  </p>
+  <p>
+    <strong>Concurrency becomes harder to reason about.</strong> In a polling loop, the
+    relationship between "when a message arrives" and "when it gets processed" depends on
+    the sleep interval, the current position in the loop, and whatever else might be
+    happening on the thread. There is no clean moment where the consumer is simply
+    "waiting for work."
+  </p>
+
+  <div class="callout">
+    <strong>The core issue:</strong> <code>basic.get</code> is a pull model — the
+    consumer drives the conversation. RabbitMQ is built around a push model — the broker
+    drives delivery. Building a pull loop on top of a push-native broker is working against
+    the grain of how the system was designed.
+  </div>
+
+
+  <!-- 2. THE PUSH MODEL -->
+  <h2>How Notification-Based Consumption Works</h2>
+
+  <p>
+    RabbitMQ's push model works through <code>basic_consume</code>: the consumer registers
+    a callback with the broker and the broker delivers messages to it as they arrive. The
+    consumer doesn't ask — it just stays connected and the broker does the driving.
+  </p>
+  <p>
+    Under this model, the consumer process is truly idle when there are no messages. No
+    polling loop, no sleep intervals, no periodic network requests. When a message arrives
+    at the queue, RabbitMQ pushes it down the open TCP connection and the callback fires
+    immediately.
+  </p>
+  <p>
+    The key to making this work reliably is the connection type. <code>BlockingConnection</code>
+    — which the polling implementation used — is convenient but limited: it processes one
+    thing at a time and blocks the thread during I/O. For a push consumer that needs to
+    handle heartbeats, reconnection, and message delivery concurrently, pika's
+    <code>SelectConnection</code> with an IOLoop is the right tool. It drives all I/O
+    through a non-blocking event loop, which means heartbeats keep firing while messages
+    are being processed and reconnection logic can run without interrupting the consumer.
+  </p>
+
+
+  <!-- 3. THE IMPLEMENTATION -->
+  <h2>The SelectConnection Consumer</h2>
+
+  <p>
+    The redesigned consumer is structured around pika's <code>SelectConnection</code> and
+    its callback-driven API. Rather than a loop, the consumer registers callbacks for each
+    stage of the connection and channel lifecycle — pika's IOLoop handles the rest:
+  </p>
+
+  <span class="code-label">push consumer — selectconnection with ioloop</span>
+  <pre><code><span class="kw">import</span> pika
+<span class="kw">from</span> pika.exchange_type <span class="kw">import</span> ExchangeType
+
+<span class="kw">class</span> <span class="fn">RobustConsumer</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, amqp_url: str, queue: str):
+        self._url    = amqp_url
+        self._queue  = queue
+        self._conn   = <span class="kw">None</span>
+        self._channel = <span class="kw">None</span>
+        self._closing = <span class="kw">False</span>
+
+    <span class="kw">def</span> <span class="fn">run</span>(self):
+        <span class="cm"># Connect and hand control to the IOLoop — runs until stopped</span>
+        self._conn = self._connect()
+        self._conn.ioloop.start()
+
+    <span class="kw">def</span> <span class="fn">stop</span>(self):
+        self._closing = <span class="kw">True</span>
+        <span class="kw">if</span> self._conn:
+            self._conn.ioloop.stop()
+
+    <span class="kw">def</span> <span class="fn">_connect</span>(self) -> pika.SelectConnection:
+        <span class="kw">return</span> pika.SelectConnection(
+            parameters=pika.URLParameters(self._url),
+            on_open_callback=self._on_connection_open,
+            on_open_error_callback=self._on_connection_error,
+            on_close_callback=self._on_connection_closed,
+        )
+
+    <span class="kw">def</span> <span class="fn">_on_connection_open</span>(self, conn):
+        conn.channel(on_open_callback=self._on_channel_open)
+
+    <span class="kw">def</span> <span class="fn">_on_channel_open</span>(self, channel):
+        self._channel = channel
+        channel.add_on_close_callback(self._on_channel_closed)
+        channel.basic_qos(
+            prefetch_count=<span class="nm">1</span>,
+            callback=self._on_qos_ok
+        )
+
+    <span class="kw">def</span> <span class="fn">_on_qos_ok</span>(self, _frame):
+        self._channel.basic_consume(
+            queue=self._queue,
+            on_message_callback=self._on_message,
+        )
+
+    <span class="kw">def</span> <span class="fn">_on_message</span>(self, channel, method, properties, body):
+        <span class="kw">try</span>:
+            process_message(body)
+            channel.basic_ack(method.delivery_tag)
+        <span class="kw">except</span> Exception <span class="kw">as</span> e:
+            logger.error(<span class="st">f"Processing failed: {e}"</span>)
+            channel.basic_nack(
+                method.delivery_tag,
+                requeue=<span class="kw">False</span>   <span class="cm"># route to dead letter exchange</span>
+            )
+</code></pre>
+
+  <p>
+    The IOLoop drives everything from this point. No thread is parked in a sleep. No
+    periodic polling. When a message arrives, <code>_on_message</code> fires immediately
+    via the broker's push delivery. When the queue is empty, the process is genuinely idle —
+    consuming no CPU, issuing no broker requests.
+  </p>
+
+  <h3>Heartbeat handling</h3>
+
+  <p>
+    One of the silent failure modes of the polling implementation was missed heartbeats.
+    RabbitMQ expects heartbeat frames on the connection at a configured interval. With a
+    blocking connection inside a polling loop, long-running message processing could delay
+    the heartbeat long enough for the broker to consider the connection stale and close it —
+    often surfacing as a confusing <code>ConnectionResetError</code> mid-processing.
+  </p>
+  <p>
+    <code>SelectConnection</code> handles heartbeats through the IOLoop automatically.
+    Because the IOLoop is non-blocking, heartbeat frames are sent on schedule regardless of
+    what the message callback is doing. There is no longer a race between processing time
+    and heartbeat intervals:
+  </p>
+
+  <span class="code-label">heartbeat configured at connection time</span>
+  <pre><code>params = pika.URLParameters(self._url)
+params.heartbeat = <span class="nm">60</span>          <span class="cm"># broker closes connection if silent for 60s</span>
+params.blocked_connection_timeout = <span class="nm">300</span>
+
+<span class="kw">return</span> pika.SelectConnection(
+    parameters=params,
+    on_open_callback=self._on_connection_open,
+    on_open_error_callback=self._on_connection_error,
+    on_close_callback=self._on_connection_closed,
+)
+</code></pre>
+
+  <h3>Reconnection logic</h3>
+
+  <p>
+    The polling loop had implicit reconnection — if the connection dropped, the next
+    <code>basic.get</code> call would raise and the outer exception handler would
+    reconnect. Simple, but it meant the consumer was completely dead between the drop
+    and the next poll cycle.
+  </p>
+  <p>
+    With <code>SelectConnection</code>, reconnection is explicit and structured. The
+    <code>on_close_callback</code> fires on any unexpected disconnect, allowing the
+    consumer to schedule a reconnect attempt on the IOLoop with exponential backoff:
+  </p>
+
+  <span class="code-label">reconnection with exponential backoff</span>
+  <pre><code><span class="kw">def</span> <span class="fn">_on_connection_error</span>(self, conn, error):
+    logger.warning(<span class="st">f"Connection error: {error}. Reconnecting..."</span>)
+    self._schedule_reconnect()
+
+<span class="kw">def</span> <span class="fn">_on_connection_closed</span>(self, conn, reason):
+    self._channel = <span class="kw">None</span>
+    <span class="kw">if not</span> self._closing:
+        logger.warning(<span class="st">f"Connection closed unexpectedly: {reason}. Reconnecting..."</span>)
+        self._schedule_reconnect()
+
+<span class="kw">def</span> <span class="fn">_schedule_reconnect</span>(self):
+    self._reconnect_delay = min(
+        getattr(self, <span class="st">'_reconnect_delay'</span>, <span class="nm">1</span>) * <span class="nm">2</span>,
+        <span class="nm">30</span>   <span class="cm"># cap at 30 seconds</span>
+    )
+    logger.info(<span class="st">f"Reconnecting in {self._reconnect_delay}s"</span>)
+    self._conn.ioloop.call_later(self._reconnect_delay, self._reconnect)
+
+<span class="kw">def</span> <span class="fn">_reconnect</span>(self):
+    self._reconnect_delay = <span class="nm">1</span>   <span class="cm"># reset on successful reconnect</span>
+    self._conn = self._connect()
+    self._conn.ioloop.start()
+
+<span class="kw">def</span> <span class="fn">_on_channel_closed</span>(self, channel, reason):
+    logger.warning(<span class="st">f"Channel closed: {reason}"</span>)
+    <span class="kw">if not</span> self._closing:
+        self._conn.close()   <span class="cm"># triggers _on_connection_closed → reconnect</span>
+</code></pre>
+
+  <p>
+    The backoff caps at 30 seconds to avoid hammering a broker that's temporarily
+    unavailable, while still recovering quickly from transient network blips. The delay
+    resets on a successful connection so the next disconnection starts from a fast retry
+    again.
+  </p>
+
+  <h3>Dead letter handling and nacks</h3>
+
+  <p>
+    In the polling implementation, a failed message was nacked with <code>requeue=True</code>
+    by default — it went back to the front of the queue and would be retried immediately,
+    often causing a tight loop on a persistently failing message. The redesigned consumer
+    nacks with <code>requeue=False</code> and routes failed messages to a dead letter
+    exchange instead:
+  </p>
+
+  <span class="code-label">queue declared with dead letter exchange</span>
+  <pre><code>channel.queue_declare(
+    queue=self._queue,
+    durable=<span class="kw">True</span>,
+    arguments={
+        <span class="st">'x-dead-letter-exchange'</span>: <span class="st">'dlx'</span>,
+        <span class="st">'x-dead-letter-routing-key'</span>: <span class="st">f'{self._queue}.failed'</span>,
+    }
+)
+
+<span class="cm"># Dead letter exchange and queue</span>
+channel.exchange_declare(exchange=<span class="st">'dlx'</span>, exchange_type=ExchangeType.direct)
+channel.queue_declare(queue=<span class="st">f'{self._queue}.failed'</span>, durable=<span class="kw">True</span>)
+channel.queue_bind(
+    queue=<span class="st">f'{self._queue}.failed'</span>,
+    exchange=<span class="st">'dlx'</span>,
+    routing_key=<span class="st">f'{self._queue}.failed'</span>,
+)
+</code></pre>
+
+  <p>
+    Failed messages land in <code>{queue}.failed</code> where they can be inspected,
+    replayed manually, or processed by a separate error handler. Critically, they no
+    longer block the main queue or create a retry loop that consumes broker resources.
+  </p>
+
+  <h3>Publisher confirms</h3>
+
+  <p>
+    Where the consumer also published results downstream, the polling implementation used
+    fire-and-forget publishing — <code>basic_publish</code> with no confirmation that the
+    broker actually received the message. Under a brief broker outage, published messages
+    could be silently lost.
+  </p>
+  <p>
+    Publisher confirms put the broker in confirm mode on the channel: it sends an ack or
+    nack for every published message, and the publisher can track which messages have been
+    confirmed:
+  </p>
+
+  <span class="code-label">publisher confirms</span>
+  <pre><code><span class="kw">def</span> <span class="fn">_on_channel_open</span>(self, channel):
+    self._channel = channel
+    <span class="cm"># Enable publisher confirms on this channel</span>
+    channel.confirm_delivery(ack_nack_callback=self._on_delivery_confirmed)
+    channel.basic_qos(prefetch_count=<span class="nm">1</span>, callback=self._on_qos_ok)
+
+<span class="kw">def</span> <span class="fn">_on_delivery_confirmed</span>(self, frame):
+    <span class="kw">if</span> isinstance(frame.method, pika.spec.Basic.Nack):
+        <span class="cm"># Broker rejected the publish — log and handle</span>
+        logger.error(<span class="st">"Broker nacked a published message — requeuing for retry"</span>)
+        self._handle_publish_failure(frame)
+    <span class="kw">else</span>:
+        <span class="cm"># Basic.Ack — broker confirmed receipt</span>
+        logger.debug(<span class="st">"Publish confirmed"</span>)
+</code></pre>
+
+
+  <!-- 4. PUTTING IT TOGETHER -->
+  <h2>The Full Picture</h2>
+
+  <p>
+    The polling-to-push migration touched more than just the consume mechanism. It was an
+    opportunity to harden the entire RabbitMQ integration: reconnection logic that had been
+    implicit became explicit and structured; heartbeat failures that had been silent became
+    non-events; message failures that had been noisy retry loops became clean dead-letter
+    flows; published messages that had been unconfirmed became reliably acknowledged.
+  </p>
+  <p>
+    The resulting consumer class encapsulates all of this. The service code that uses it
+    only ever sees one method: implement <code>process_message</code>, pass it in, call
+    <code>run()</code>. The IOLoop, reconnection backoff, heartbeat management, DLX routing,
+    and publisher confirms are invisible to the caller.
+  </p>
+
+  <span class="code-label">full consumer — service usage</span>
+  <pre><code><span class="kw">def</span> <span class="fn">handle_order</span>(body: bytes) -> <span class="kw">None</span>:
+    order = json.loads(body)
+    result = process_order(order)
+    publish_result(result)   <span class="cm"># confirmed via publisher confirms</span>
+
+consumer = RobustConsumer(
+    amqp_url=<span class="st">"amqp://user:pass@broker:5672/"</span>,
+    queue=<span class="st">"orders"</span>,
+)
+consumer.register_handler(handle_order)
+consumer.run()   <span class="cm"># blocks here; IOLoop drives everything</span>
+</code></pre>
+
+
+  <!-- 5. TAKEAWAYS -->
+  <h2>Key Takeaways</h2>
+
+  <p>
+    <strong>1. basic.get is not a consumer pattern.</strong> It's a synchronous fetch
+    designed for occasional use — not for building continuous consumers. Using it in a
+    polling loop fights the broker's push-native design and creates unnecessary load on
+    both sides of the connection.
+  </p>
+  <p>
+    <strong>2. SelectConnection makes concurrency composable.</strong> The IOLoop handles
+    heartbeats, reconnection callbacks, and message delivery without any of them blocking
+    the others. With a <code>BlockingConnection</code>, long message processing can delay
+    heartbeats long enough for the broker to close the connection silently.
+  </p>
+  <p>
+    <strong>3. Structure your reconnection explicitly.</strong> Implicit reconnection
+    through exception handling in a polling loop is fragile. Explicit callbacks with
+    exponential backoff make the failure and recovery path visible, testable, and
+    controllable.
+  </p>
+  <p>
+    <strong>4. Never requeue unconditionally on failure.</strong> <code>requeue=True</code>
+    on a persistently failing message creates a tight retry loop that saturates the broker
+    and blocks other messages. Route failures to a dead letter exchange instead — they can
+    be inspected and replayed without disrupting the main queue.
+  </p>
+  <p>
+    <strong>5. Publisher confirms are cheap insurance.</strong> Fire-and-forget publishing
+    is fine until a broker blip drops a message silently. Confirm mode adds minimal overhead
+    and guarantees you always know whether a message was received.
+  </p>
+
+</article>
+
+<footer class="article-footer">
+  <a href="../index.html" class="back-link">← Back to portfolio</a>
+  <a href="mailto:asher897@gmail.com">asher897@gmail.com</a>
+</footer>
+
+</body>
+</html>

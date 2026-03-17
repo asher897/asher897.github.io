@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deep Q-Networks: Learning to Play Atari from Pixels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy:   #0D1B2A;
+    --ink:    #1A2332;
+    --steel:  #2E4057;
+    --slate:  #4A6274;
+    --mist:   #8FA8BA;
+    --fog:    #C8D8E4;
+    --cloud:  #EEF3F7;
+    --white:  #FAFCFE;
+    --accent: #1B7FBF;
+    --green:  #0EA67A;
+    --rule:   #D4E0EA;
+    --code-bg:#F0F4F8;
+    --serif:  'DM Serif Display', Georgia, serif;
+    --sans:   'DM Sans', system-ui, sans-serif;
+    --mono:   'DM Mono', monospace;
+  }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--sans); background: var(--white); color: var(--ink); font-size: 17px; line-height: 1.8; -webkit-font-smoothing: antialiased; }
+
+  .article-header { max-width: 720px; margin: 0 auto; padding: 5rem 2rem 3rem; border-bottom: 1px solid var(--rule); }
+  .article-meta { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; margin-bottom: 1.2rem; display: flex; gap: 1.5rem; align-items: center; }
+  .article-meta span { color: var(--mist); }
+  h1 { font-family: var(--serif); font-size: clamp(2rem, 4vw, 3rem); font-weight: 400; color: var(--navy); line-height: 1.15; letter-spacing: -0.01em; margin-bottom: 1.25rem; }
+  .article-lede { font-size: 1.15rem; color: var(--slate); line-height: 1.65; font-weight: 300; border-left: 3px solid var(--accent); padding-left: 1.25rem; margin-top: 1.5rem; }
+
+  .article-body { max-width: 720px; margin: 0 auto; padding: 3rem 2rem 6rem; }
+
+  h2 { font-family: var(--serif); font-size: 1.7rem; font-weight: 400; color: var(--navy); line-height: 1.25; margin: 3rem 0 1rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
+  h2:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+  h3 { font-size: 0.8rem; font-weight: 500; color: var(--steel); letter-spacing: 0.04em; text-transform: uppercase; margin: 2rem 0 0.6rem; }
+
+  p { color: var(--slate); margin-bottom: 1.25rem; }
+  p:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 500; }
+  em { font-style: italic; color: var(--steel); }
+
+  pre { background: var(--code-bg); border: 1px solid var(--rule); border-radius: 4px; padding: 1.5rem; overflow-x: auto; margin: 1.5rem 0; }
+  pre code { font-family: var(--mono); font-size: 13.5px; line-height: 1.7; color: var(--ink); }
+  code { font-family: var(--mono); font-size: 0.85em; background: var(--cloud); color: var(--steel); padding: 1px 5px; border-radius: 3px; border: 1px solid var(--rule); }
+  pre code { background: none; border: none; padding: 0; font-size: 13.5px; }
+  .code-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--mist); text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
+
+  .kw  { color: #185FA5; }
+  .fn  { color: #0EA67A; }
+  .cm  { color: #9EB5C4; font-style: italic; }
+  .st  { color: #BA7517; }
+  .nm  { color: #3C3489; }
+  .dc  { color: #993556; }
+
+  .callout { background: var(--cloud); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 1rem 1.25rem; margin: 1.75rem 0; font-size: 0.93rem; color: var(--steel); line-height: 1.65; }
+  .callout strong { color: var(--accent); }
+  .callout-warn { border-left-color: #BA7517; background: #FAEEDA; }
+  .callout-warn strong { color: #854F0B; }
+  .callout-honest { border-left-color: var(--green); background: #EAF3DE; }
+  .callout-honest strong { color: #3B6D11; }
+
+  .figure { margin: 2rem 0; padding: 1.5rem; background: var(--cloud); border-radius: 4px; border: 1px solid var(--rule); }
+  .figure-caption { font-family: var(--mono); font-size: 11px; color: var(--mist); letter-spacing: 0.04em; margin-top: 0.75rem; display: block; line-height: 1.5; }
+  .diagram { font-family: var(--mono); font-size: 12.5px; line-height: 1.6; color: var(--steel); white-space: pre; overflow-x: auto; }
+
+  .article-footer { max-width: 720px; margin: 0 auto; padding: 2rem; border-top: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: center; }
+  .article-footer a { font-family: var(--mono); font-size: 12px; color: var(--accent); text-decoration: none; letter-spacing: 0.04em; }
+  .article-footer a:hover { text-decoration: underline; }
+  .back-link { color: var(--mist); font-family: var(--mono); font-size: 12px; text-decoration: none; }
+  .back-link:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header class="article-header">
+  <div class="article-meta">
+    Reinforcement Learning <span>·</span> Deep Learning <span>·</span> Atari
+    <span style="margin-left:auto;">2023</span>
+  </div>
+  <h1>Deep Q-Networks: Learning to Play Atari from Pixels</h1>
+  <p class="article-lede">
+    I implemented the Nature DQN from scratch — the architecture that first demonstrated
+    an agent learning to play Atari games at human level directly from raw pixel input.
+    What makes DQN interesting isn't just the result; it's the set of specific, motivated
+    engineering choices that make the whole thing stable enough to train at all.
+  </p>
+</header>
+
+<article class="article-body">
+
+  <!-- 1. THE PROBLEM -->
+  <h2>The Problem: Instability in Deep RL</h2>
+
+  <p>
+    Reinforcement learning has a clean conceptual foundation: an agent takes actions,
+    receives rewards, and learns a policy that maximises cumulative return over time.
+    The challenge is that combining this with deep neural networks introduces instabilities
+    that make naive implementations fail almost immediately.
+  </p>
+  <p>
+    The core tension is that in supervised learning your training targets are fixed — a label
+    is a label. In Q-learning, the target you're training toward is itself computed from your
+    own network's current predictions. Update the network, and your targets shift. You're
+    chasing a moving goalpost, and with a neural network doing the chasing, the feedback loops
+    can become destructive quickly. Add to this that consecutive game frames are highly
+    correlated — feeding them sequentially means the network sees near-identical inputs back
+    to back, making gradient updates redundant and noisy.
+  </p>
+  <p>
+    The Nature DQN paper addressed both problems with two targeted mechanisms:
+    <strong>experience replay</strong> and a <strong>frozen target network</strong>. The
+    implementation I built uses both.
+  </p>
+
+  <!-- 2. THE APPROACH -->
+  <h2>Q-Learning and Why It Needs Help</h2>
+
+  <p>
+    Q-learning is a value-based RL method. The agent learns a function
+    <code>Q(s, a)</code> — the expected cumulative reward for taking action <code>a</code>
+    in state <code>s</code> and following the optimal policy thereafter. Once you have a
+    good Q-function, the policy is trivial: in any state, take the action with the highest
+    Q-value.
+  </p>
+  <p>
+    The learning update is the <strong>temporal difference (TD) error</strong> — the
+    difference between the Q-value you predicted and a bootstrapped estimate of what it
+    should be, based on the reward you actually received plus the discounted value of the
+    next state:
+  </p>
+
+  <span class="code-label">TD target and loss</span>
+  <pre><code><span class="cm"># The target: what the Q-value for (s, a) should have been</span>
+y_j = r + γ · max_a' Q_target(s', a')    <span class="cm"># if not terminal</span>
+y_j = r                                   <span class="cm"># if terminal (done)</span>
+
+<span class="cm"># The loss: minimise the squared error between prediction and target</span>
+loss = MSE(Q(s, a), y_j)</code></pre>
+
+  <p>
+    The problem is <code>Q_target</code>. If it's the same network as <code>Q</code>,
+    every gradient step changes both the prediction <em>and</em> the target simultaneously.
+    The solution is to compute targets using a <strong>separate frozen copy</strong> of the
+    network, updated periodically rather than every step.
+  </p>
+
+  <div class="callout">
+    <strong>Why freezing the target network matters:</strong> imagine trying to hit a
+    moving target with each shot. If your aim adjusts the target's position too, the
+    feedback becomes circular and unstable. Freezing the target network for a fixed number
+    of steps gives the online network a stable objective to optimise toward, then snaps the
+    target forward once the online network has improved.
+  </div>
+
+  <!-- 3. ARCHITECTURE -->
+  <h2>The Architecture: CNN to Q-Values</h2>
+
+  <p>
+    The state input is not a single frame — it's a <strong>stack of four consecutive
+    84×84 greyscale frames</strong>. Stacking frames gives the network information about
+    motion: it can infer the direction and speed of the ball from how its position changes
+    across the four frames. A single frame is ambiguous; four frames tell a story.
+  </p>
+
+  <div class="figure">
+    <div class="diagram">Input: 4 × 84 × 84 (stacked greyscale frames)
+       │
+       ▼
+  ┌─────────────────────────────────────────────────────┐
+  │  Conv2D(32 filters, 8×8 kernel, stride 4) + ReLU   │  → 32 × 19 × 19
+  │  Conv2D(64 filters, 4×4 kernel, stride 2) + ReLU   │  → 64 × 9  × 9
+  │  Conv2D(64 filters, 3×3 kernel, stride 1) + ReLU   │  → 64 × 7  × 7
+  └─────────────────────────────────────────────────────┘
+       │
+       ▼  Flatten → 3136
+       │
+  ┌─────────────────────────────────────────────────────┐
+  │  Linear(3136 → 512) + ReLU                         │
+  │  Linear(512  → n_actions)                          │  ← Q-value per action
+  └─────────────────────────────────────────────────────┘</div>
+    <span class="figure-caption">Fig 1 — Nature DQN architecture. Three convolutional layers extract spatial features from the stacked frame input. Two fully connected layers map the flattened features to a Q-value for each possible action.</span>
+  </div>
+
+  <p>
+    The convolutional layers handle the spatial feature extraction — learning to detect
+    edges, the ball, the paddles, and their relative positions. The large initial kernel
+    (8×8, stride 4) aggressively downsamples early, capturing coarse structure cheaply.
+    Subsequent layers refine at finer resolution. The fully connected layers then map
+    this spatial representation to Q-values over the action space.
+  </p>
+
+  <span class="code-label">DQN forward pass</span>
+  <pre><code><span class="kw">def</span> <span class="fn">forward</span>(self, x):
+    <span class="cm"># x: (batch, 4, 84, 84) — stacked frames</span>
+    x = self.relu(self.conv1(x))   <span class="cm"># → (batch, 32, 19, 19)</span>
+    x = self.relu(self.conv2(x))   <span class="cm"># → (batch, 64,  9,  9)</span>
+    x = self.relu(self.conv3(x))   <span class="cm"># → (batch, 64,  7,  7)</span>
+    x = x.view(x.size(<span class="nm">0</span>), -<span class="nm">1</span>)     <span class="cm"># → (batch, 3136)</span>
+    x = self.relu(self.fc1(x))     <span class="cm"># → (batch, 512)</span>
+    <span class="kw">return</span> self.fc2(x)             <span class="cm"># → (batch, n_actions) — one Q-value per action</span></code></pre>
+
+  <!-- 4. EXPERIENCE REPLAY -->
+  <h2>Experience Replay: Breaking Correlation</h2>
+
+  <p>
+    The second stability mechanism is <strong>experience replay</strong>. Rather than
+    learning from transitions as they arrive — where each transition is highly correlated
+    with the last — the agent stores every <code>(state, action, reward, next_state, done)</code>
+    transition in a replay buffer and samples random minibatches from it during training.
+  </p>
+  <p>
+    This breaks the temporal correlation between consecutive training samples. A minibatch
+    drawn randomly from 50,000 stored transitions will contain experiences from many
+    different points in the game — early exploration, late exploitation, successful rallies,
+    missed shots — giving the network a much more diverse and representative gradient signal.
+  </p>
+
+  <span class="code-label">TD loss computation with replay buffer</span>
+  <pre><code><span class="kw">def</span> <span class="fn">optimise_td_loss</span>(self):
+    batch = self.replay_buffer.sample(self.batch_size)
+
+    state      = tensor(batch[<span class="st">"state"</span>],      dtype=float32)
+    next_state = tensor(batch[<span class="st">"next_state"</span>], dtype=float32)
+    reward     = tensor(batch[<span class="st">"reward"</span>],     dtype=float32)
+    done       = tensor(batch[<span class="st">"done"</span>],       dtype=float32)
+    action     = tensor(batch[<span class="st">"action"</span>])
+
+    <span class="cm"># Target: r  +  γ · max_a' Q_target(s', a')  ·  (1 - done)</span>
+    q_next = self.target_dqn(next_state).max(dim=<span class="nm">1</span>)[<span class="nm">0</span>]
+    y_j = reward + (<span class="nm">1</span> - done) * self.gamma * q_next
+
+    <span class="cm"># Prediction: Q(s, a) — only for the action actually taken</span>
+    q_pred = self.dqn(state).gather(<span class="nm">1</span>, action.unsqueeze(-<span class="nm">1</span>)).squeeze()
+
+    loss = self.loss_fn(q_pred, y_j)
+    loss.backward()
+    self.optimizer.step()
+    <span class="kw">return</span> loss</code></pre>
+
+  <p>
+    The <code>.gather()</code> call is worth noting: the network outputs a Q-value for
+    every action, but we only want the Q-value for the action that was actually taken.
+    <code>gather</code> indexes into the output tensor using the stored action indices,
+    extracting exactly the predictions we want to supervise.
+  </p>
+
+  <!-- 5. EXPLORATION -->
+  <h2>Exploration: ε-Greedy with Linear Decay</h2>
+
+  <p>
+    A purely greedy policy — always taking the action with the highest Q-value — will
+    never discover better strategies it hasn't seen yet. The agent needs to explore.
+    The standard approach is <strong>ε-greedy</strong>: with probability ε take a random
+    action, otherwise act greedily. ε is annealed from 1.0 (fully random) down to 0.01
+    over the first 10% of training steps.
+  </p>
+  <p>
+    Starting fully random makes sense: the network's Q-values are meaningless at
+    initialisation, so there's nothing to be greedy about. As the replay buffer fills
+    with diverse experience and the network starts to learn, ε decays and the agent
+    progressively trusts its own estimates more.
+  </p>
+
+  <span class="code-label">ε-greedy action selection</span>
+  <pre><code>fraction      = min(<span class="nm">1.0</span>, t / eps_timesteps)
+eps_threshold = eps_start + fraction * (eps_end - eps_start)
+<span class="cm"># linearly anneals from 1.0 → 0.01 over eps_fraction of total steps</span>
+
+<span class="kw">if</span> random() < eps_threshold:
+    action = env.action_space.sample()   <span class="cm"># explore</span>
+<span class="kw">else</span>:
+    action = argmax(Q_online(state))     <span class="cm"># exploit</span></code></pre>
+
+  <!-- 7. PUTTING IT TOGETHER -->
+  <h2>The Full Training Loop</h2>
+
+  <p>
+    The interactions between these components follow a specific sequence each step. The
+    ordering matters — in particular, learning only begins after the replay buffer has
+    accumulated enough transitions to sample meaningful minibatches from.
+  </p>
+
+  <div class="figure">
+    <div class="diagram">For each environment step t:
+
+  1. Select action via ε-greedy policy
+       │
+       ▼
+  2. Step environment → (next_state, reward, done)
+       │
+       ▼
+  3. Store (state, action, reward, next_state, done) in replay buffer
+       │
+       ▼
+  4. If t > learning_starts AND t % learning_freq == 0:
+       └─ Sample minibatch from replay buffer
+       └─ Compute TD targets using frozen target network
+       └─ Backprop MSE loss through online network
+       │
+       ▼
+  5. If t > learning_starts AND t % target_update_freq == 0:
+       └─ Hard copy online weights → target network</div>
+    <span class="figure-caption">Fig 2 — Training loop structure. Learning is deferred until the buffer has enough transitions. Target network updates are less frequent than gradient steps, keeping targets stable between syncs.</span>
+  </div>
+
+  <p>
+    The hyperparameters used in this implementation reflect the original Nature paper
+    closely, with some reductions for the training budget available:
+    replay buffer of 50k transitions (paper: 1M), batch size 64, learning rate 1e-4,
+    discount factor γ=0.99, target network sync every 100 steps, training for 1M
+    environment steps total.
+  </p>
+
+  <!-- 8. TAKEAWAYS -->
+  <h2>Key Takeaways</h2>
+
+  <p>
+    <strong>1. The instabilities are real and the fixes are targeted.</strong> Without
+    experience replay and a frozen target network, DQN training collapses. Each mechanism
+    addresses a specific failure mode — correlated gradients and moving targets respectively.
+    Understanding <em>why</em> each component exists matters more than knowing it exists.
+  </p>
+  <p>
+    <strong>2. Frame stacking is implicit temporal encoding.</strong> There's no recurrence
+    in DQN — no LSTM, no explicit memory. The agent infers motion from the difference in
+    object positions across four stacked frames. It's a simple and effective design choice
+    that keeps the architecture tractable.
+  </p>
+  <p>
+    <strong>3. Delayed learning is intentional.</strong> Waiting until the replay buffer
+    has 1,000+ transitions before starting gradient updates ensures the initial minibatches
+    are diverse. Starting immediately would mean training on nearly identical transitions
+    from the first few seconds of gameplay — exactly the correlation problem replay is
+    meant to solve.
+  </p>
+  <p>
+    <strong>4. The CNN architecture encodes a strong prior.</strong> The choice of kernel
+    sizes and strides (8×8/4, 4×4/2, 3×3/1) is deliberate — each layer operates at a
+    different spatial scale, progressively building from low-level edges to higher-level
+    game objects. This is not incidental; it reflects an understanding of how spatial
+    hierarchies should be encoded for game-frame inputs.
+  </p>
+
+</article>
+
+<footer class="article-footer">
+  <a href="../index.html" class="back-link">← Back to portfolio</a>
+  <a href="mailto:asher897@gmail.com">asher897@gmail.com</a>
+</footer>
+
+</body>
+</html>
